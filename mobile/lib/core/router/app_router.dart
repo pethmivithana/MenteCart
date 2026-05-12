@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../di/injection.dart';
 
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
@@ -13,9 +14,6 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/cart/presentation/screens/checkout_screen.dart';
 import '../../features/bookings/presentation/screens/booking_history_screen.dart';
 import '../../features/bookings/presentation/screens/booking_detail_screen.dart';
-import '../../features/services/presentation/bloc/services_bloc.dart';
-import '../../features/cart/presentation/bloc/cart_bloc.dart';
-import '../../features/bookings/presentation/bloc/bookings_bloc.dart';
 
 /// Centralized GoRouter configuration with auth-guard redirects.
 class AppRouter {
@@ -27,6 +25,28 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      final authBloc = context.read<AuthBloc>();
+      final authState = authBloc.state;
+      final isOnSplash = state.matchedLocation == '/splash';
+      final isOnAuth = state.matchedLocation == '/login' || state.matchedLocation == '/signup';
+
+      // If on splash, stay there while checking auth status
+      if (isOnSplash) return null;
+
+      // If authenticated and on auth screens, go to home
+      if (authState is AuthSuccess && isOnAuth) {
+        return '/home';
+      }
+
+      // If not authenticated and not on auth screens, go to login
+      if (authState is! AuthSuccess && authState is! AuthLoading && !isOnAuth && !isOnSplash) {
+        return '/login';
+      }
+
+      // Allow navigation
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/splash',
@@ -36,80 +56,47 @@ class AppRouter {
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<AuthBloc>(),
-          child: const LoginScreen(),
-        ),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/signup',
         name: 'signup',
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<AuthBloc>(),
-          child: const SignupScreen(),
-        ),
+        builder: (context, state) => const SignupScreen(),
       ),
       GoRoute(
         path: '/home',
         name: 'home',
-        builder: (context, state) => MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (_) => sl<ServicesBloc>()),
-            BlocProvider(create: (_) => sl<CartBloc>()),
-          ],
-          child: const HomeScreen(),
-        ),
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: '/services/:id',
         name: 'service-detail',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return MultiBlocProvider(
-            providers: [
-              BlocProvider(create: (_) => sl<ServicesBloc>()),
-              BlocProvider(create: (_) => sl<CartBloc>()),
-            ],
-            child: ServiceDetailScreen(serviceId: id),
-          );
+          return ServiceDetailScreen(serviceId: id);
         },
       ),
       GoRoute(
         path: '/cart',
         name: 'cart',
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<CartBloc>(),
-          child: const CartScreen(),
-        ),
+        builder: (context, state) => const CartScreen(),
       ),
       GoRoute(
         path: '/checkout',
         name: 'checkout',
-        builder: (context, state) => MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (_) => sl<CartBloc>()),
-            BlocProvider(create: (_) => sl<BookingsBloc>()),
-          ],
-          child: const CheckoutScreen(),
-        ),
+        builder: (context, state) => const CheckoutScreen(),
       ),
       GoRoute(
         path: '/bookings',
         name: 'booking-history',
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<BookingsBloc>(),
-          child: const BookingHistoryScreen(),
-        ),
+        builder: (context, state) => const BookingHistoryScreen(),
       ),
       GoRoute(
         path: '/bookings/:id',
         name: 'booking-detail',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return BlocProvider(
-            create: (_) => sl<BookingsBloc>(),
-            child: BookingDetailScreen(bookingId: id),
-          );
+          return BookingDetailScreen(bookingId: id);
         },
       ),
     ],
