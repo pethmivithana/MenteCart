@@ -1,15 +1,15 @@
 import mongoose from 'mongoose';
+import { env } from '../config/env';
+import { BookingStatus, IBooking } from '../models/Booking';
 import { bookingRepository } from '../repositories/BookingRepository';
 import { cartRepository } from '../repositories/CartRepository';
 import { serviceRepository } from '../repositories/ServiceRepository';
-import { IBooking, BookingStatus } from '../models/Booking';
 import {
   BadRequestError,
-  NotFoundError,
-  ForbiddenError,
   ConflictError,
+  ForbiddenError,
+  NotFoundError,
 } from '../utils/ApiError';
-import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
 export interface BookingFilters {
@@ -117,6 +117,7 @@ export class BookingService {
         totalAmount += subtotal;
 
         bookingItems.push({
+          _id: new mongoose.Types.ObjectId(),
           serviceId: item.serviceId,
           serviceTitle: service.title,
           serviceImage: service.image,

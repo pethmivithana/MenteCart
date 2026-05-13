@@ -1,5 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
+import mongoose, { Document, Schema } from 'mongoose';
 import { env } from '../config/env';
 
 export type UserRole = 'user' | 'admin';
@@ -8,7 +8,7 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
@@ -51,9 +51,9 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform(_, ret) {
+      transform(_, ret: Record<string, unknown>) {
         delete ret.passwordHash;
-        delete ret.__v;
+        delete (ret as any).__v;
         return ret;
       },
     },
@@ -65,7 +65,9 @@ const userSchema = new Schema<IUser>(
  */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('passwordHash')) return next();
-  this.passwordHash = await bcrypt.hash(this.passwordHash, env.BCRYPT_SALT_ROUNDS);
+  if (!this.passwordHash) return next(new Error('Password is required'));
+  const hash = await bcrypt.hash(this.passwordHash, env.BCRYPT_SALT_ROUNDS);
+  this.passwordHash = hash;
   next();
 });
 
@@ -75,6 +77,7 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.comparePassword = async function (
   candidatePassword: string,
 ): Promise<boolean> {
+  if (!this.passwordHash) return false;
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 

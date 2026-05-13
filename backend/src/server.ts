@@ -13,7 +13,7 @@ const startServer = async (): Promise<void> => {
 
     const app = createApp();
 
-    const server = app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, "0.0.0.0", () => {
       logger.info(`🚀 MenteCart API running on http://localhost:${env.PORT}`);
       logger.info(`   Environment : ${env.NODE_ENV}`);
       logger.info(`   Health check: http://localhost:${env.PORT}/health`);
