@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
 
-/// Contract for auth remote operations
 abstract class AuthRemoteDataSource {
   Future<AuthResponseModel> login(String email, String password);
   Future<AuthResponseModel> signup({
@@ -13,7 +12,6 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getMe();
 }
 
-/// Implementation using Dio HTTP client
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
 
@@ -21,18 +19,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<AuthResponseModel> login(String email, String password) async {
-    try {
-      final response = await dio.post(
-        '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
-      );
-      return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
-    } on DioException {
-      rethrow;
-    }
+    final response = await dio.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    );
+    return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   @override
@@ -41,28 +32,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     required String name,
   }) async {
-    try {
-      final response = await dio.post(
-        '/auth/signup',
-        data: {
-          'email': email,
-          'password': password,
-          'name': name,
-        },
-      );
-      return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
-    } on DioException {
-      rethrow;
-    }
+    final response = await dio.post(
+      '/auth/signup',
+      data: {'email': email, 'password': password, 'name': name},
+    );
+    return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   @override
   Future<UserModel> getMe() async {
-    try {
-      final response = await dio.get('/auth/me');
-      return UserModel.fromJson(response.data as Map<String, dynamic>);
-    } on DioException {
-      rethrow;
-    }
+    final response = await dio.get('/auth/me');
+    // Backend returns: { success, message, data: { user } }
+    final data = response.data as Map<String, dynamic>;
+    final userJson = data['data']['user'] as Map<String, dynamic>;
+    return UserModel.fromJson(userJson);
   }
 }

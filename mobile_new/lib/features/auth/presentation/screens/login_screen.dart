@@ -4,6 +4,8 @@ import '../../../../core/validators/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'signup_screen.dart';
+import '../../../../features/services/presentation/screens/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,20 +43,27 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthFailure) {
+          if (state is AuthSuccess) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              (_) => false,
+            );
+          } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
-        child: SingleChildScrollView(
-          child: Padding(
+        child: SafeArea(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-                // Header
                 const Text(
                   'Welcome Back',
                   style: TextStyle(
@@ -62,22 +71,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Sign in to your account',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                // Form
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Email field
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -91,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         validator: Validators.validateEmail,
                       ),
                       const SizedBox(height: 16),
-                      // Password field
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
@@ -104,38 +109,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? Icons.visibility_off
                                   : Icons.visibility,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Password is required';
-                          }
-                          return null;
-                        },
+                        validator: (v) =>
+                            (v?.isEmpty ?? true) ? 'Password is required' : null,
                       ),
                       const SizedBox(height: 24),
-                      // Login button
                       BlocBuilder<AuthBloc, AuthState>(
                         builder: (context, state) {
                           return SizedBox(
                             width: double.infinity,
                             height: 48,
                             child: ElevatedButton(
-                              onPressed: state is AuthLoading
-                                  ? null
-                                  : _handleLogin,
+                              onPressed:
+                                  state is AuthLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
-                                disabledBackgroundColor:
-                                    const Color(0xFF6366F1).withOpacity(0.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -147,8 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       child: CircularProgressIndicator(
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                                Colors.white),
                                         strokeWidth: 2,
                                       ),
                                     )
@@ -165,18 +159,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Sign up link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            'Don\'t have an account? ',
+                            "Don't have an account? ",
                             style: TextStyle(color: Colors.grey),
                           ),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).pushNamed('/signup');
-                            },
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => const SignupScreen()),
+                            ),
                             child: const Text(
                               'Sign Up',
                               style: TextStyle(

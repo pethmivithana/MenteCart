@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'user_model.dart';
 
-/// AuthResponseModel - backend response containing token and user
+/// AuthResponseModel - maps the backend envelope:
+/// { success, message, data: { user, accessToken } }
 class AuthResponseModel extends Equatable {
   final String token;
   final UserModel user;
@@ -11,11 +12,12 @@ class AuthResponseModel extends Equatable {
     required this.user,
   });
 
-  /// Convert JSON to model
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
+    // Backend wraps in data: { user, accessToken }
+    final data = json['data'] as Map<String, dynamic>;
     return AuthResponseModel(
-      token: json['token'] as String,
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
+      token: data['accessToken'] as String,
+      user: UserModel.fromJson(data['user'] as Map<String, dynamic>),
     );
   }
 

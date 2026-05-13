@@ -4,6 +4,7 @@ import '../../../../core/validators/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../../../features/services/presentation/screens/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -45,22 +46,36 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthFailure) {
+          if (state is AuthSuccess) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              (_) => false,
+            );
+          } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
-        child: SingleChildScrollView(
-          child: Padding(
+        child: SafeArea(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                // Header
                 const Text(
                   'Create Account',
                   style: TextStyle(
@@ -68,25 +83,21 @@ class _SignupScreenState extends State<SignupScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Join MenteCart today',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                // Form
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Name field
                       TextFormField(
                         controller: _nameController,
-                        keyboardType: TextInputType.name,
                         decoration: InputDecoration(
                           labelText: 'Full Name',
                           prefixIcon: const Icon(Icons.person),
@@ -94,15 +105,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Name is required';
-                          }
-                          return null;
-                        },
+                        validator: (v) =>
+                            (v?.isEmpty ?? true) ? 'Name is required' : null,
                       ),
                       const SizedBox(height: 16),
-                      // Email field
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -116,7 +122,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         validator: Validators.validateEmail,
                       ),
                       const SizedBox(height: 16),
-                      // Password field
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
@@ -124,33 +129,24 @@ class _SignupScreenState extends State<SignupScreen> {
                           labelText: 'Password',
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                            icon: Icon(_obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Password is required';
-                          }
-                          if (value!.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
+                        validator: (v) {
+                          if (v?.isEmpty ?? true) return 'Password is required';
+                          if (v!.length < 8)
+                            return 'Password must be at least 8 characters';
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Confirm password field
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirmPassword,
@@ -158,47 +154,36 @@ class _SignupScreenState extends State<SignupScreen> {
                           labelText: 'Confirm Password',
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
+                            icon: Icon(_obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(() =>
                                 _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
+                                    !_obscureConfirmPassword),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Please confirm password';
-                          }
-                          if (value != _passwordController.text) {
+                        validator: (v) {
+                          if (v?.isEmpty ?? true)
+                            return 'Please confirm your password';
+                          if (v != _passwordController.text)
                             return 'Passwords do not match';
-                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 24),
-                      // Signup button
                       BlocBuilder<AuthBloc, AuthState>(
                         builder: (context, state) {
                           return SizedBox(
                             width: double.infinity,
                             height: 48,
                             child: ElevatedButton(
-                              onPressed: state is AuthLoading
-                                  ? null
-                                  : _handleSignup,
+                              onPressed:
+                                  state is AuthLoading ? null : _handleSignup,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
-                                disabledBackgroundColor:
-                                    const Color(0xFF6366F1).withOpacity(0.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -210,8 +195,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       child: CircularProgressIndicator(
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                                Colors.white),
                                         strokeWidth: 2,
                                       ),
                                     )
@@ -228,7 +212,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Login link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -237,9 +220,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             style: TextStyle(color: Colors.grey),
                           ),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                            },
+                            onTap: () => Navigator.of(context).pop(),
                             child: const Text(
                               'Sign In',
                               style: TextStyle(

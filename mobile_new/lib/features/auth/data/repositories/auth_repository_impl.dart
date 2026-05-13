@@ -8,8 +8,6 @@ import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 
-/// Concrete implementation of AuthRepository
-/// Handles API calls and token persistence
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final FlutterSecureStorage secureStorage;
@@ -20,7 +18,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, String>> login(String email, String password) async {
     try {
       final response = await remoteDataSource.login(email, password);
-      // Store token securely
       await secureStorage.write(
         key: AppConstants.accessTokenKey,
         value: response.token,
@@ -28,6 +25,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(response.token);
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -43,7 +42,6 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
         name: name,
       );
-      // Store token securely
       await secureStorage.write(
         key: AppConstants.accessTokenKey,
         value: response.token,
@@ -51,6 +49,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(response.token);
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -61,6 +61,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(userModel.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
