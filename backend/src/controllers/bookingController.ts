@@ -1,17 +1,36 @@
 import { Response } from 'express';
 import { bookingService } from '../services/BookingService';
+import { paymentRepository } from '../repositories/PaymentRepository';
+import { payHereService } from '../services/PayHereService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse } from '../utils/ApiResponse';
+import { BadRequestError, UnauthorizedError } from '../utils/ApiError';
 import { AuthRequest } from '../types';
 import { BookingStatus } from '../models/Booking';
 
 /**
  * POST /api/bookings/checkout  [protected]
- * Converts the authenticated user's cart into a confirmed booking.
+ * Initiates booking with payment pending status.
+ * Returns booking and PayHere payment details for frontend.
  */
-export const checkout = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const booking = await bookingService.checkout(req.user!.userId);
-  ApiResponse.created(res, { booking }, 'Booking confirmed successfully');
+export const checkout: any = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { returnUrl, notifyUrl } = req.body;
+  
+  if (!returnUrl || !notifyUrl) {
+    throw new BadRequestError('returnUrl and notifyUrl are required');
+  }
+
+  const { booking, paymentDetails } = await bookingService.checkout(
+    req.user!.userId,
+    returnUrl,
+    notifyUrl,
+  );
+
+  ApiResponse.created(
+    res,
+    { booking, paymentDetails },
+    'Booking initiated - proceed to payment',
+  );
 });
 
 /**
@@ -55,4 +74,50 @@ export const cancelBooking = asyncHandler(async (req: AuthRequest, res: Response
   const { reason } = req.body as { reason?: string };
   const booking = await bookingService.cancelBooking(req.user!.userId, req.params.id, reason);
   ApiResponse.success(res, { booking }, 'Booking cancelled successfully');
+});
+
+/**
+ * POST /api/bookings/webhook/payhere  [public]
+ * Handles PayHere payment notifications.
+ * Signature verification prevents unauthorized updates.
+ */
+export const payherWebhook: any = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const authHeader = req.headers.authorization as string;
+  const body = req.body as Record<string, any>;
+  
+  // Verify webhook signature
+  const isValid = payHereService.verifyWebhookSignature(
+    JSON.stringify(body),
+    authHeader,
+  );
+
+  if (!isValid) {
+    throw new UnauthorizedError('Invalid webhook signature');
+  }
+
+  // Parse webhook payload
+  const payload = payHereService.parseWebhookPayload(body);
+
+  // Find payment by order ID (bookingRef)
+  const payment = await paymentRepository.findByBookingRef(payload.orderId);
+  if (!payment) {
+    throw new BadRequestError('Payment not found');
+  }
+
+  // Idempotent processing - check if already handled
+  if (payment.webhookProcessed) {
+    return ApiResponse.success(res, {}, 'Webhook already processed');
+  }
+
+  // Handle success vs failure
+  if (payHereService.isPaymentSuccessful(payload.paymentStatus)) {
+    const booking = await bookingService.confirmBookingAfterPayment(payment._id.toString());
+    ApiResponse.success(res, { booking }, 'Payment successful - booking confirmed');
+  } else {
+    const booking = await bookingService.handlePaymentFailure(
+      payment._id.toString(),
+      payload.statusMessage || 'Payment declined',
+    );
+    ApiResponse.success(res, { booking }, 'Payment failed - booking cancelled');
+  }
 });

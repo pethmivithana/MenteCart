@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint:fix": "eslint src --ext .ts --fix",
+    "seed": "ts-node src/seeds/service.seed.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

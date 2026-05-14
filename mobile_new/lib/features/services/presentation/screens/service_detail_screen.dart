@@ -149,7 +149,7 @@ class _ServiceDetailBodyState extends State<_ServiceDetailBody> {
                         child: Image.network(
                           service.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: Colors.grey.shade300,
                             alignment: Alignment.center,
                             child: const Icon(Icons.image_not_supported, size: 48),
@@ -187,7 +187,7 @@ class _ServiceDetailBodyState extends State<_ServiceDetailBody> {
                         labelText: 'Date',
                         border: OutlineInputBorder(),
                       ),
-                      value: _selectedDate != null && dates.contains(_selectedDate)
+                      initialValue: _selectedDate != null && dates.contains(_selectedDate)
                           ? _selectedDate
                           : null,
                       items: dates
@@ -210,7 +210,7 @@ class _ServiceDetailBodyState extends State<_ServiceDetailBody> {
                         labelText: 'Time',
                         border: OutlineInputBorder(),
                       ),
-                      value: _selectedTime != null &&
+                      initialValue: _selectedTime != null &&
                               times.any((t) => t.time == _selectedTime)
                           ? _selectedTime
                           : null,

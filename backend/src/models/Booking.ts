@@ -7,6 +7,8 @@ export type BookingStatus =
   | 'cancelled'
   | 'failed';
 
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+
 export interface IBookingItem {
   _id: mongoose.Types.ObjectId;
   serviceId: mongoose.Types.ObjectId;
@@ -26,6 +28,8 @@ export interface IBooking extends Document {
   items: IBookingItem[];
   totalAmount: number;
   status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  paymentId?: string;
   cancelledAt?: Date;
   cancellationReason?: string;
   notes?: string;
@@ -78,6 +82,12 @@ const bookingSchema = new Schema<IBooking>(
       enum: ['pending', 'confirmed', 'completed', 'cancelled', 'failed'],
       default: 'pending',
     },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'cancelled'],
+      default: 'pending',
+    },
+    paymentId: { type: String },
     cancelledAt: { type: Date },
     cancellationReason: { type: String, maxlength: 500 },
     notes: { type: String, maxlength: 500 },

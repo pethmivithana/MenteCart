@@ -4,6 +4,7 @@ import { BookingStatus, IBooking } from '../models/Booking';
 import { bookingRepository } from '../repositories/BookingRepository';
 import { cartRepository } from '../repositories/CartRepository';
 import { serviceRepository } from '../repositories/ServiceRepository';
+import { paymentRepository } from '../repositories/PaymentRepository';
 import {
   BadRequestError,
   ConflictError,
@@ -11,6 +12,7 @@ import {
   NotFoundError,
 } from '../utils/ApiError';
 import { logger } from '../utils/logger';
+import { payHereService, PayHereInitiatePaymentRequest } from './PayHereService';
 
 export interface BookingFilters {
   status?: BookingStatus;
@@ -24,17 +26,26 @@ export interface BookingFilters {
  */
 export class BookingService {
   /**
-   * Convert the user's cart into confirmed bookings.
+   * Initiates checkout with payment pending status.
    * Steps:
    *  1. Validate cart is not empty
    *  2. Enforce per-day booking limits
    *  3. Atomically reserve each slot (fails if capacity exceeded)
-   *  4. Create booking record
-   *  5. Clear the cart
+   *  4. Create booking record with status='pending', paymentStatus='pending'
+   *  5. Create payment record
+   *  6. Return booking with PayHere payment details
    *
+   * Booking is NOT confirmed until payment webhook succeeds.
    * If slot reservation fails partway through, already-reserved slots are released.
    */
-  async checkout(userId: string): Promise<IBooking> {
+  async checkout(
+    userId: string,
+    returnUrl: string,
+    notifyUrl: string,
+  ): Promise<{
+    booking: IBooking;
+    paymentDetails: Record<string, any>;
+  }> {
     const cart = await cartRepository.findByUserId(userId);
 
     if (!cart || cart.items.length === 0) {
@@ -131,18 +142,56 @@ export class BookingService {
 
       const bookingRef = await bookingRepository.generateBookingRef();
 
+      // Create booking with PENDING status (not confirmed yet)
       const booking = await bookingRepository.create({
         bookingRef,
         userId: new mongoose.Types.ObjectId(userId),
         items: bookingItems,
         totalAmount,
-        status: 'confirmed',
+        status: 'pending',
+        paymentStatus: 'pending',
       });
 
-      // Clear the cart after successful booking
-      await cartRepository.clearCart(userId);
+      // Create payment record
+      const payment = await paymentRepository.create({
+        bookingId: booking._id,
+        bookingRef: booking.bookingRef,
+        userId: new mongoose.Types.ObjectId(userId),
+        amount: totalAmount,
+        currency: 'LKR',
+        method: 'payhere',
+        status: 'pending',
+      });
 
-      return booking;
+      // Get user details for PayHere
+      const user = await mongoose.connection.collection('users').findOne({
+        _id: new mongoose.Types.ObjectId(userId),
+      });
+
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+
+      // Initiate PayHere payment
+      const paymentInitReq: PayHereInitiatePaymentRequest = {
+        bookingRef: booking.bookingRef,
+        amount: totalAmount,
+        currency: 'LKR',
+        customerEmail: user.email || 'customer@mentecart.local',
+        customerPhone: user.phone || '0000000000',
+        customerName: user.name || 'Customer',
+        notifyUrl,
+      };
+
+      const paymentDetails = payHereService.initiatePayment(paymentInitReq, returnUrl);
+
+      // DO NOT clear cart yet - only clear after successful payment webhook
+      // await cartRepository.clearCart(userId);
+
+      return {
+        booking,
+        paymentDetails,
+      };
     } catch (error) {
       // Release all already-reserved slots to prevent phantom bookings
       logger.warn({ reservedSlots }, 'Checkout failed — releasing reserved slots');
@@ -194,6 +243,90 @@ export class BookingService {
       cancelledAt: new Date(),
       cancellationReason: reason ?? 'Cancelled by user',
     });
+
+    return updated!;
+  }
+
+  /**
+   * Confirms booking after successful payment webhook.
+   * Steps:
+   *  1. Find payment record
+   *  2. Update payment status to 'completed'
+   *  3. Confirm booking (pending → confirmed)
+   *  4. Clear the cart
+   * Idempotent: Webhook may be retried, so check if already processed.
+   */
+  async confirmBookingAfterPayment(paymentId: string): Promise<IBooking> {
+    const payment = await paymentRepository.findById(paymentId);
+    if (!payment) throw new NotFoundError('Payment not found');
+
+    // Mark webhook as processed (prevent duplicate processing)
+    await paymentRepository.markWebhookProcessed(paymentId);
+
+    // Update payment status
+    await paymentRepository.updateStatus(paymentId, 'completed');
+
+    // Confirm the booking
+    const booking = await bookingRepository.confirmBookingAfterPayment(
+      payment.bookingId.toString(),
+    );
+    if (!booking) throw new NotFoundError('Booking not found');
+
+    // Clear the cart after successful payment
+    await cartRepository.clearCart(payment.userId.toString());
+
+    logger.info(
+      { bookingId: booking._id, bookingRef: booking.bookingRef },
+      'Booking confirmed after successful payment',
+    );
+
+    return booking;
+  }
+
+  /**
+   * Handles payment failure.
+   * Steps:
+   *  1. Update payment status to 'failed'
+   *  2. Update booking status to 'failed'
+   *  3. Release reserved slots
+   */
+  async handlePaymentFailure(paymentId: string, reason?: string): Promise<IBooking> {
+    const payment = await paymentRepository.findById(paymentId);
+    if (!payment) throw new NotFoundError('Payment not found');
+
+    // Mark webhook as processed
+    await paymentRepository.markWebhookProcessed(paymentId);
+
+    // Update payment status
+    await paymentRepository.updateStatus(paymentId, 'failed', {
+      failureReason: reason,
+    });
+
+    // Get the booking
+    const booking = await bookingRepository.findById(payment.bookingId.toString());
+    if (!booking) throw new NotFoundError('Booking not found');
+
+    // Release all reserved slots
+    await Promise.all(
+      booking.items.map((item) =>
+        serviceRepository.decrementSlotBookedCount(
+          item.serviceId.toString(),
+          item.slotDate,
+          item.slotTime,
+          item.quantity,
+        ),
+      ),
+    );
+
+    // Update booking status to failed
+    const updated = await bookingRepository.updateStatus(booking._id.toString(), 'failed', {
+      cancellationReason: `Payment failed: ${reason || 'Unknown reason'}`,
+    });
+
+    logger.warn(
+      { bookingId: booking._id, reason },
+      'Payment failed - booking cancelled and slots released',
+    );
 
     return updated!;
   }

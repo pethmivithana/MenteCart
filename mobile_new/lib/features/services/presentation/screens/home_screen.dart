@@ -155,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: _categories.map((c) {
-                final label = c == null ? 'All' : c;
+                final label = c ?? 'All';
                 final selected = _category == c;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
