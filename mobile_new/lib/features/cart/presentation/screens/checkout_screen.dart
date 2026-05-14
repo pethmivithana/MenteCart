@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../bookings/presentation/bloc/bookings_bloc.dart';
 import '../../../bookings/presentation/bloc/bookings_event.dart';
@@ -24,6 +25,49 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     context.read<CartBloc>().add(const GetCartEvent());
   }
 
+  Future<void> _launchPayHerePayment(
+    BuildContext context,
+    Map<String, dynamic> paymentDetails,
+  ) async {
+    try {
+      // Construct PayHere payment URL
+      final baseUrl = paymentDetails['payhere_url'] ??
+          'https://sandbox.payhere.lk/pay/checkout';
+      
+      // Build URL with payment parameters
+      final uri = Uri.parse(baseUrl).replace(
+        queryParameters: {
+          'merchant_id': paymentDetails['merchant_id'],
+          'return_url': paymentDetails['return_url'],
+          'cancel_url': paymentDetails['return_url'],
+          'notify_url': paymentDetails['notify_url'],
+          'order_id': paymentDetails['order_id'],
+          'items': paymentDetails['items'],
+          'amount': paymentDetails['amount'],
+          'currency': paymentDetails['currency'],
+          'first_name': (paymentDetails['customer_name'] ?? '').split(' ').first,
+          'last_name': (paymentDetails['customer_name'] ?? '').contains(' ')
+              ? (paymentDetails['customer_name'] ?? '').split(' ').last
+              : '',
+          'email': paymentDetails['customer_email'],
+          'phone': paymentDetails['customer_phone'],
+          'address': 'N/A',
+          'city': 'N/A',
+          'country': 'LK',
+          'merchant_key': paymentDetails['merchant_key'],
+        },
+      );
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to launch payment: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,11 +75,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       body: BlocConsumer<BookingsBloc, BookingsState>(
         listener: (context, bookingState) {
           if (bookingState is CheckoutSuccess) {
-            context.read<CartBloc>().add(const GetCartEvent());
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Booking confirmed')),
-            );
-            context.go('/bookings/${bookingState.booking.id}');
+            if (bookingState.paymentResponse != null) {
+              // Launch PayHere payment
+              _launchPayHerePayment(context, bookingState.paymentResponse!);
+              
+              // Navigate to payment processing screen
+              context.go(
+                '/payment-processing',
+                extra: {
+                  'bookingRef': bookingState.booking.bookingRef,
+                  'bookingId': bookingState.booking.id,
+                },
+              );
+            } else {
+              // No payment required (unlikely but handle it)
+              context.read<CartBloc>().add(const GetCartEvent());
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Booking confirmed')),
+              );
+              context.go('/bookings/${bookingState.booking.id}');
+            }
           }
           if (bookingState is BookingsFailure) {
             ScaffoldMessenger.of(context).showSnackBar(

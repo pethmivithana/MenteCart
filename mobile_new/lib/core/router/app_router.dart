@@ -15,6 +15,10 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/cart/presentation/screens/checkout_screen.dart';
 import '../../features/bookings/presentation/screens/booking_history_screen.dart';
 import '../../features/bookings/presentation/screens/booking_detail_screen.dart';
+import '../../features/payment/presentation/screens/payment_processing_screen.dart';
+import '../../features/payment/presentation/screens/payment_success_screen.dart';
+import '../../features/payment/presentation/screens/payment_failed_screen.dart';
+import '../../features/bookings/domain/entities/booking.dart';
 
 /// Notifies [GoRouter] when [AuthBloc] emits so redirects re-run.
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -132,6 +136,39 @@ class AppRouter {
           builder: (context, state) {
             final id = state.pathParameters['id']!;
             return BookingDetailScreen(bookingId: id);
+          },
+        ),
+        GoRoute(
+          path: '/payment-processing',
+          name: 'payment-processing',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            final bookingRef = extra?['bookingRef'] ?? '';
+            final bookingId = extra?['bookingId'] ?? '';
+            return PaymentProcessingScreen(
+              bookingRef: bookingRef,
+              bookingId: bookingId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/payment-success',
+          name: 'payment-success',
+          builder: (context, state) {
+            final booking = state.extra as Booking;
+            return PaymentSuccessScreen(booking: booking);
+          },
+        ),
+        GoRoute(
+          path: '/payment-failed',
+          name: 'payment-failed',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return PaymentFailedScreen(
+              message: extra?['message'] ?? 'Payment Failed',
+              reason: extra?['reason'],
+              bookingId: extra?['bookingId'],
+            );
           },
         ),
       ],

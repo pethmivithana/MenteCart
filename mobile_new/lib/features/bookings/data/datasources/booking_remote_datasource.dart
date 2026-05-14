@@ -1,8 +1,12 @@
 import 'package:dio/dio.dart';
 import '../models/booking_model.dart';
+import '../../../../features/payment/data/models/payment_response_model.dart';
 
 abstract class BookingRemoteDataSource {
-  Future<BookingModel> checkout();
+  Future<PaymentResponseModel> checkout({
+    required String returnUrl,
+    required String notifyUrl,
+  });
   Future<BookingListResponseModel> getBookings({
     int page = 1,
     int limit = 10,
@@ -18,11 +22,20 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   BookingRemoteDataSourceImpl(this.dio);
 
   @override
-  Future<BookingModel> checkout() async {
+  Future<PaymentResponseModel> checkout({
+    required String returnUrl,
+    required String notifyUrl,
+  }) async {
     try {
-      final response = await dio.post('/bookings/checkout');
+      final response = await dio.post(
+        '/bookings/checkout',
+        data: {
+          'returnUrl': returnUrl,
+          'notifyUrl': notifyUrl,
+        },
+      );
       final data = response.data['data'] as Map<String, dynamic>;
-      return BookingModel.fromJson(data['booking'] as Map<String, dynamic>);
+      return PaymentResponseModel.fromJson(data);
     } on DioException {
       rethrow;
     }

@@ -46,11 +46,12 @@ class BookingDetailSuccess extends BookingsState {
 
 class CheckoutSuccess extends BookingsState {
   final Booking booking;
+  final Map<String, dynamic>? paymentResponse;
 
-  const CheckoutSuccess(this.booking);
+  const CheckoutSuccess(this.booking, {this.paymentResponse});
 
   @override
-  List<Object?> get props => [booking];
+  List<Object?> get props => [booking, paymentResponse];
 }
 
 class BookingsFailure extends BookingsState {

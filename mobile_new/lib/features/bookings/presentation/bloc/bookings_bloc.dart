@@ -29,7 +29,14 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     Emitter<BookingsState> emit,
   ) async {
     emit(const BookingsLoading());
-    final result = await checkoutUseCase();
+    const baseUrl = 'http://localhost:3000'; // Update with your app URL
+    final returnUrl = '$baseUrl/payment-processing';
+    final notifyUrl = '$baseUrl/api/payments/webhook'; // Backend webhook URL
+    
+    final result = await checkoutUseCase(CheckoutParams(
+      returnUrl: returnUrl,
+      notifyUrl: notifyUrl,
+    ));
     result.fold(
       (failure) => emit(
         BookingsFailure(
@@ -37,7 +44,10 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
           errorCode: failure.errorCode,
         ),
       ),
-      (booking) => emit(CheckoutSuccess(booking)),
+      (checkoutResponse) => emit(CheckoutSuccess(
+        checkoutResponse.booking,
+        paymentResponse: checkoutResponse.paymentDetails,
+      )),
     );
   }
 

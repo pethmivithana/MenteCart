@@ -3,6 +3,9 @@ import 'package:equatable/equatable.dart';
 /// Booking status enum
 enum BookingStatus { pending, confirmed, completed, cancelled }
 
+/// Payment status enum
+enum PaymentStatus { pending, paid, failed, cancelled }
+
 /// BookingItem in a booking
 class BookingItem extends Equatable {
   final String id;
@@ -38,30 +41,39 @@ class BookingItem extends Equatable {
 /// Booking entity
 class Booking extends Equatable {
   final String id;
+  final String bookingRef;
   final String userId;
   final List<BookingItem> items;
   final double totalAmount;
   final BookingStatus status;
+  final PaymentStatus paymentStatus;
+  final String? paymentId;
   final DateTime createdAt;
   final DateTime? completedAt;
 
   const Booking({
     required this.id,
+    required this.bookingRef,
     required this.userId,
     required this.items,
     required this.totalAmount,
     required this.status,
+    required this.paymentStatus,
     required this.createdAt,
+    this.paymentId,
     this.completedAt,
   });
 
   @override
   List<Object?> get props => [
     id,
+    bookingRef,
     userId,
     items,
     totalAmount,
     status,
+    paymentStatus,
+    paymentId,
     createdAt,
     completedAt,
   ];

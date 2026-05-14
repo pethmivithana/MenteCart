@@ -4,6 +4,7 @@ import '../../../../core/error/exception_handler.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/repositories/booking_repository.dart';
+import '../../domain/usecases/checkout_usecase.dart';
 import '../datasources/booking_remote_datasource.dart';
 
 class BookingRepositoryImpl implements BookingRepository {
@@ -12,10 +13,19 @@ class BookingRepositoryImpl implements BookingRepository {
   BookingRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<Failure, Booking>> checkout() async {
+  Future<Either<Failure, CheckoutResponse>> checkout({
+    required String returnUrl,
+    required String notifyUrl,
+  }) async {
     try {
-      final model = await remoteDataSource.checkout();
-      return Right(model.toEntity());
+      final model = await remoteDataSource.checkout(
+        returnUrl: returnUrl,
+        notifyUrl: notifyUrl,
+      );
+      return Right(CheckoutResponse(
+        booking: model.booking.toEntity(),
+        paymentDetails: model.paymentDetails.toJson(),
+      ));
     } on DioException catch (e) {
       return Left(handleDioException(e));
     } catch (e) {

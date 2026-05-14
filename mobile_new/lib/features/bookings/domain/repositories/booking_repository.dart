@@ -1,11 +1,15 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/booking.dart';
+import '../usecases/checkout_usecase.dart';
 
 /// Booking repository contract
 abstract class BookingRepository {
   /// Create booking from cart items (checkout)
-  Future<Either<Failure, Booking>> checkout();
+  Future<Either<Failure, CheckoutResponse>> checkout({
+    required String returnUrl,
+    required String notifyUrl,
+  });
 
   /// Get paginated list of bookings
   /// [page] - page number (1-indexed)
