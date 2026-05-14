@@ -20,6 +20,23 @@ abstract class CartRemoteDataSource {
   Future<void> removeItem(String itemId);
 }
 
+String _slotDateYmd(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
+
+CartItemModel _itemFromCart(CartModel cart, String itemId) {
+  for (final i in cart.items) {
+    if (i.id == itemId) {
+      return i;
+    }
+  }
+  if (cart.items.isEmpty) {
+    throw StateError('Cart response had no items');
+  }
+  return cart.items.last;
+}
+
 class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   final Dio dio;
 
@@ -29,7 +46,8 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   Future<CartModel> getCart() async {
     try {
       final response = await dio.get('/cart');
-      return CartModel.fromJson(response.data['data']);
+      final data = response.data['data'] as Map<String, dynamic>;
+      return CartModel.fromJson(data['cart'] as Map<String, dynamic>);
     } on DioException {
       rethrow;
     }
@@ -44,19 +62,29 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     DateTime? selectedDate,
     String? selectedSlot,
   }) async {
+    if (selectedDate == null ||
+        selectedSlot == null ||
+        selectedSlot.trim().isEmpty) {
+      throw ArgumentError(
+        'A slot date (YYYY-MM-DD) and slot time (HH:MM) are required to add this service to the cart.',
+      );
+    }
     try {
       final response = await dio.post(
         '/cart/items',
         data: {
           'serviceId': serviceId,
-          'serviceName': serviceName,
-          'price': price,
+          'slotDate': _slotDateYmd(selectedDate),
+          'slotTime': selectedSlot.trim(),
           'quantity': quantity,
-          if (selectedDate != null) 'selectedDate': selectedDate.toIso8601String(),
-          'selectedSlot': ?selectedSlot,
         },
       );
-      return CartItemModel.fromJson(response.data['data']);
+      final data = response.data['data'] as Map<String, dynamic>;
+      final cart = CartModel.fromJson(data['cart'] as Map<String, dynamic>);
+      if (cart.items.isEmpty) {
+        throw StateError('Cart response had no items after add');
+      }
+      return cart.items.last;
     } on DioException {
       rethrow;
     }
@@ -70,15 +98,21 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     String? selectedSlot,
   }) async {
     try {
+      final body = <String, dynamic>{'quantity': quantity};
+      if (selectedDate != null) {
+        body['slotDate'] = _slotDateYmd(selectedDate);
+      }
+      if (selectedSlot != null && selectedSlot.trim().isNotEmpty) {
+        body['slotTime'] = selectedSlot.trim();
+      }
+
       final response = await dio.patch(
         '/cart/items/$itemId',
-        data: {
-          'quantity': quantity,
-          if (selectedDate != null) 'selectedDate': selectedDate.toIso8601String(),
-          'selectedSlot': ?selectedSlot,
-        },
+        data: body,
       );
-      return CartItemModel.fromJson(response.data['data']);
+      final data = response.data['data'] as Map<String, dynamic>;
+      final cart = CartModel.fromJson(data['cart'] as Map<String, dynamic>);
+      return _itemFromCart(cart, itemId);
     } on DioException {
       rethrow;
     }

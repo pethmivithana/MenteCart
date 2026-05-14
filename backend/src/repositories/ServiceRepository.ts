@@ -22,6 +22,10 @@ export interface PaginatedServices {
  * Data access layer for Service collection.
  * Supports paginated listing with category/search/price filters.
  */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export class ServiceRepository {
   async findMany(filters: ServiceFilters): Promise<PaginatedServices> {
     const { category, search, minPrice, maxPrice, page, limit } = filters;
@@ -29,7 +33,10 @@ export class ServiceRepository {
     const query: mongoose.FilterQuery<IService> = { isActive: true };
 
     if (category) query.category = category;
-    if (search) query.$text = { $search: search };
+    if (search && search.trim()) {
+      const rx = new RegExp(escapeRegex(search.trim()), 'i');
+      query.$or = [{ title: rx }, { description: rx }];
+    }
     if (minPrice !== undefined || maxPrice !== undefined) {
       query.price = {};
       if (minPrice !== undefined) query.price.$gte = minPrice;

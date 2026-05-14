@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_new/core/error/failures.dart';
-import '../../domain/usecases/get_me_usecase.dart';
+import '../../domain/usecases/get_me_usecase.dart' show GetMeParams, GetMeUseCase;
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/signup_usecase.dart';
-import 'auth_event.dart';
+import '../bloc/auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -32,24 +32,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await loginUseCase(
       LoginParams(email: event.email, password: event.password),
     );
-    result.fold(
-      (failure) => emit(
-        AuthFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
-      ),
-      (token) async {
-        // After successful login, get user info
-        final userResult = await getMeUseCase();
-        userResult.fold(
-          (failure) => emit(
-            AuthFailure(
-              message: failure.message,
-              errorCode: failure.errorCode,
-            ),
+    await result.fold<Future<void>>(
+      (failure) async {
+        emit(
+          AuthFailure(
+            message: failure.message,
+            errorCode: failure.errorCode,
           ),
-          (user) => emit(AuthSuccess(user: user, token: token)),
+        );
+      },
+      (token) async {
+        final userResult = await getMeUseCase(
+          GetMeParams(accessToken: token),
+        );
+        await userResult.fold<Future<void>>(
+          (failure) async {
+            emit(
+              AuthFailure(
+                message: failure.message,
+                errorCode: failure.errorCode,
+              ),
+            );
+          },
+          (user) async {
+            emit(AuthSuccess(user: user, token: token));
+          },
         );
       },
     );
@@ -68,24 +75,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
       ),
     );
-    result.fold(
-      (failure) => emit(
-        AuthFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
-      ),
-      (token) async {
-        // After successful signup, get user info
-        final userResult = await getMeUseCase();
-        userResult.fold(
-          (failure) => emit(
-            AuthFailure(
-              message: failure.message,
-              errorCode: failure.errorCode,
-            ),
+    await result.fold<Future<void>>(
+      (failure) async {
+        emit(
+          AuthFailure(
+            message: failure.message,
+            errorCode: failure.errorCode,
           ),
-          (user) => emit(AuthSuccess(user: user, token: token)),
+        );
+      },
+      (_) async {
+        // Account exists; require explicit login (clear signup token from storage).
+        await logoutUseCase();
+        emit(
+          const AuthLoggedOut(
+            bannerMessage:
+                'Account created successfully. Please sign in with your email and password.',
+          ),
         );
       },
     );
@@ -94,7 +100,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   /// Handle get me
   Future<void> _onGetMeEvent(GetMeEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
-    final result = await getMeUseCase();
+    final result = await getMeUseCase(const GetMeParams());
     result.fold(
       (failure) {
         // If getMe fails, user is not authenticated
@@ -114,7 +120,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(const AuthLoading());
-    final result = await getMeUseCase();
+    final result = await getMeUseCase(const GetMeParams());
     result.fold(
       (failure) {
         if (failure is UnauthorizedFailure) {

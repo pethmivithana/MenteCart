@@ -1,4 +1,5 @@
 import { createApp } from './app';
+import { seedDemoServicesIfEmpty } from './bootstrap/seedDemoServices';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import { logger } from './utils/logger';
@@ -10,6 +11,10 @@ import { logger } from './utils/logger';
 const startServer = async (): Promise<void> => {
   try {
     await connectDatabase();
+
+    if (env.NODE_ENV === 'development') {
+      await seedDemoServicesIfEmpty();
+    }
 
     const app = createApp();
 

@@ -21,7 +21,8 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   Future<BookingModel> checkout() async {
     try {
       final response = await dio.post('/bookings/checkout');
-      return BookingModel.fromJson(response.data['data']);
+      final data = response.data['data'] as Map<String, dynamic>;
+      return BookingModel.fromJson(data['booking'] as Map<String, dynamic>);
     } on DioException {
       rethrow;
     }
@@ -34,11 +35,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     String? status,
   }) async {
     try {
-      final Map<String, dynamic> queryParams = {
+      final queryParams = <String, dynamic>{
         'page': page,
         'limit': limit,
-        'status': ?status,
       };
+      if (status != null && status.isNotEmpty) {
+        queryParams['status'] = status;
+      }
 
       final response = await dio.get(
         '/bookings',
@@ -54,7 +57,8 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   Future<BookingModel> getBookingById(String id) async {
     try {
       final response = await dio.get('/bookings/$id');
-      return BookingModel.fromJson(response.data['data']);
+      final data = response.data['data'] as Map<String, dynamic>;
+      return BookingModel.fromJson(data['booking'] as Map<String, dynamic>);
     } on DioException {
       rethrow;
     }
@@ -63,8 +67,12 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<BookingModel> cancelBooking(String id) async {
     try {
-      final response = await dio.patch('/bookings/$id/cancel');
-      return BookingModel.fromJson(response.data['data']);
+      final response = await dio.post(
+        '/bookings/$id/cancel',
+        data: <String, dynamic>{},
+      );
+      final data = response.data['data'] as Map<String, dynamic>;
+      return BookingModel.fromJson(data['booking'] as Map<String, dynamic>);
     } on DioException {
       rethrow;
     }

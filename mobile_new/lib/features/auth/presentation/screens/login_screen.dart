@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/validators/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
-import 'signup_screen.dart';
-import '../../../../features/services/presentation/screens/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,16 +42,19 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (_) => false,
-            );
-          } else if (state is AuthFailure) {
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
+              ),
+            );
+          }
+          if (state is AuthLoggedOut && state.bannerMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.bannerMessage!),
+                backgroundColor: Colors.green.shade700,
               ),
             );
           }
@@ -167,10 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(color: Colors.grey),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const SignupScreen()),
-                            ),
+                            onTap: () => context.push('/signup'),
                             child: const Text(
                               'Sign Up',
                               style: TextStyle(

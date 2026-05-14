@@ -18,6 +18,8 @@ class CartRepositoryImpl implements CartRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -42,6 +44,8 @@ class CartRepositoryImpl implements CartRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -62,6 +66,8 @@ class CartRepositoryImpl implements CartRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -72,6 +78,8 @@ class CartRepositoryImpl implements CartRepository {
       return const Right(null);
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 }

@@ -54,9 +54,14 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.read(key: AppConstants.accessTokenKey);
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final existing = options.headers['Authorization'];
+    final hasAuth = existing != null &&
+        existing.toString().trim().isNotEmpty;
+    if (!hasAuth) {
+      final token = await _storage.read(key: AppConstants.accessTokenKey);
+      if (token != null && token.isNotEmpty) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }

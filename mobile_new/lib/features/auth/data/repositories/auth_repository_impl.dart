@@ -55,9 +55,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> getMe() async {
+  Future<Either<Failure, User>> getMe({String? accessToken}) async {
     try {
-      final userModel = await remoteDataSource.getMe();
+      final token = accessToken ??
+          await secureStorage.read(key: AppConstants.accessTokenKey);
+      if (token == null || token.isEmpty) {
+        return const Left(UnauthorizedFailure());
+      }
+      final userModel = await remoteDataSource.getMe(accessToken: token);
       return Right(userModel.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));

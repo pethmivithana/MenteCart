@@ -9,7 +9,7 @@ abstract class AuthRemoteDataSource {
     required String password,
     required String name,
   });
-  Future<UserModel> getMe();
+  Future<UserModel> getMe({String? accessToken});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -40,8 +40,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> getMe() async {
-    final response = await dio.get('/auth/me');
+  Future<UserModel> getMe({String? accessToken}) async {
+    final response = await dio.get(
+      '/auth/me',
+      options: accessToken != null && accessToken.isNotEmpty
+          ? Options(headers: {'Authorization': 'Bearer $accessToken'})
+          : null,
+    );
     // Backend returns: { success, message, data: { user } }
     final data = response.data as Map<String, dynamic>;
     final userJson = data['data']['user'] as Map<String, dynamic>;

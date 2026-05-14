@@ -20,6 +20,7 @@ Production-style Node.js + Express + TypeScript + MongoDB REST API for the Mente
 ```
 backend/
 ├── src/
+│   ├── bootstrap/        # Optional startup tasks (e.g. demo seed)
 │   ├── config/           # DB connection, env validation
 │   ├── controllers/      # Request handlers (thin layer)
 │   ├── services/         # Business logic
@@ -55,6 +56,10 @@ cp .env.example .env
 ```bash
 npm run dev
 ```
+
+When `NODE_ENV` is `development` (the default from `.env.example`) and the **`services` collection is empty**, the server **inserts four demo services** with future bookable slots so the mobile app and Postman have data immediately. Wipe the collection or database and restart to re-seed.
+
+List search uses **case-insensitive regex** on `title` and `description` (no MongoDB text index required).
 
 ### 4. Build for production
 ```bash

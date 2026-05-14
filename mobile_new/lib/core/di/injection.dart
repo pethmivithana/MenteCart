@@ -17,6 +17,7 @@ import '../../features/services/data/repositories/service_repository_impl.dart';
 import '../../features/services/domain/repositories/service_repository.dart';
 import '../../features/services/domain/usecases/get_services_usecase.dart';
 import '../../features/services/domain/usecases/get_service_by_id_usecase.dart';
+import '../../features/services/presentation/bloc/service_detail_bloc.dart';
 import '../../features/services/presentation/bloc/services_bloc.dart';
 
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
@@ -60,7 +61,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => SignupUseCase(sl()));
   sl.registerLazySingleton(() => GetMeUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
-  sl.registerFactory(() => AuthBloc(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(
+    () => AuthBloc(sl(), sl(), sl(), sl()),
+  );
 
   // ─── Services ──────────────────────────────────────────────────────────
   sl.registerLazySingleton<ServiceRemoteDataSource>(
@@ -72,6 +75,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetServicesUseCase(sl()));
   sl.registerLazySingleton(() => GetServiceByIdUseCase(sl()));
   sl.registerFactory(() => ServicesBloc(sl(), sl()));
+  sl.registerFactory(() => ServiceDetailBloc(sl<GetServiceByIdUseCase>()));
 
   // ─── Cart ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton<CartRemoteDataSource>(

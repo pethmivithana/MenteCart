@@ -16,8 +16,9 @@ abstract class AuthRepository {
     required String name,
   });
 
-  /// Get current user info
-  Future<Either<Failure, User>> getMe();
+  /// Get current user info. Pass [accessToken] right after login/signup when
+  /// secure storage may not yet be visible to the next request.
+  Future<Either<Failure, User>> getMe({String? accessToken});
 
   /// Clear stored token
   Future<void> logout();

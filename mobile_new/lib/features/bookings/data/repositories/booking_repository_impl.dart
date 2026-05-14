@@ -18,6 +18,8 @@ class BookingRepositoryImpl implements BookingRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -36,6 +38,8 @@ class BookingRepositoryImpl implements BookingRepository {
       return Right(response.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -46,6 +50,8 @@ class BookingRepositoryImpl implements BookingRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -56,6 +62,8 @@ class BookingRepositoryImpl implements BookingRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 }

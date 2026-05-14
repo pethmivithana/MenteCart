@@ -36,6 +36,8 @@ class ServiceRepositoryImpl implements ServiceRepository {
       );
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -46,6 +48,8 @@ class ServiceRepositoryImpl implements ServiceRepository {
       return Right(model.toEntity());
     } on DioException catch (e) {
       return Left(handleDioException(e));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:mobile_new/core/utils/json_parse.dart';
 import '../../domain/entities/cart.dart';
 
 /// CartItemModel
@@ -22,16 +23,33 @@ class CartItemModel extends Equatable {
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
+    final sid = json['serviceId'];
+    String serviceIdStr;
+    String serviceName;
+    if (sid is Map<String, dynamic>) {
+      serviceIdStr = idToString(sid['_id'] ?? sid[r'$oid']);
+      serviceName = (sid['title'] ?? sid['name'] ?? 'Service') as String;
+    } else {
+      serviceIdStr = idToString(sid);
+      serviceName = (json['serviceName'] as String?) ?? 'Service';
+    }
+
+    final slotDate = json['slotDate'] ?? json['selectedDate'];
+    final slotTime = json['slotTime'] ?? json['selectedSlot'];
+    DateTime? selectedDate;
+    if (slotDate is String && slotDate.isNotEmpty) {
+      selectedDate = DateTime.tryParse(slotDate) ??
+          DateTime.tryParse('${slotDate}T00:00:00.000Z');
+    }
+
     return CartItemModel(
-      id: json['_id'] as String,
-      serviceId: json['serviceId'] as String,
-      serviceName: json['serviceName'] as String,
-      price: (json['price'] as num).toDouble(),
-      quantity: json['quantity'] as int,
-      selectedDate: json['selectedDate'] != null
-          ? DateTime.parse(json['selectedDate'] as String)
-          : null,
-      selectedSlot: json['selectedSlot'] as String?,
+      id: idToString(json['_id']),
+      serviceId: serviceIdStr,
+      serviceName: serviceName,
+      price: asDouble(json['priceAtAdd'] ?? json['price']) ?? 0,
+      quantity: asInt(json['quantity'], 1),
+      selectedDate: selectedDate,
+      selectedSlot: slotTime as String?,
     );
   }
 
@@ -72,11 +90,12 @@ class CartModel extends Equatable {
   factory CartModel.fromJson(Map<String, dynamic> json) {
     return CartModel(
       items: List<CartItemModel>.from(
-        (json['items'] as List).map((x) => CartItemModel.fromJson(x)),
+        ((json['items'] as List<dynamic>?) ?? const [])
+            .map((x) => CartItemModel.fromJson(x as Map<String, dynamic>)),
       ),
-      userId: json['userId'] as String,
+      userId: idToString(json['userId']),
       expiresAt: json['expiresAt'] != null
-          ? DateTime.parse(json['expiresAt'] as String)
+          ? DateTime.tryParse(json['expiresAt'].toString())
           : null,
     );
   }

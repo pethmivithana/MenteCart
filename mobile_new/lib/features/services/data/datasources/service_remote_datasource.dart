@@ -27,12 +27,16 @@ class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
     String? search,
   }) async {
     try {
-      final Map<String, dynamic> queryParams = {
+      final queryParams = <String, dynamic>{
         'page': page,
         'limit': limit,
-        'category': ?category,
-        'search': ?search,
       };
+      if (category != null && category.isNotEmpty) {
+        queryParams['category'] = category;
+      }
+      if (search != null && search.isNotEmpty) {
+        queryParams['search'] = search;
+      }
 
       final response = await dio.get(
         '/services',
@@ -48,7 +52,10 @@ class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
   Future<ServiceModel> getServiceById(String id) async {
     try {
       final response = await dio.get('/services/$id');
-      return ServiceModel.fromJson(response.data['data']);
+      final envelope = response.data as Map<String, dynamic>;
+      final data = envelope['data'] as Map<String, dynamic>;
+      final serviceJson = data['service'] as Map<String, dynamic>;
+      return ServiceModel.fromJson(serviceJson);
     } on DioException {
       rethrow;
     }

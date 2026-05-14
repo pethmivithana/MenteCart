@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/validators/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
-import '../../../../features/services/presentation/screens/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -51,17 +51,12 @@ class _SignupScreenState extends State<SignupScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (_) => false,
-            );
-          } else if (state is AuthFailure) {
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -141,8 +136,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         validator: (v) {
                           if (v?.isEmpty ?? true) return 'Password is required';
-                          if (v!.length < 8)
+                          if (v!.length < 8) {
                             return 'Password must be at least 8 characters';
+                          }
                           return null;
                         },
                       ),
@@ -166,10 +162,12 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                         ),
                         validator: (v) {
-                          if (v?.isEmpty ?? true)
+                          if (v?.isEmpty ?? true) {
                             return 'Please confirm your password';
-                          if (v != _passwordController.text)
+                          }
+                          if (v != _passwordController.text) {
                             return 'Passwords do not match';
+                          }
                           return null;
                         },
                       ),
@@ -220,7 +218,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             style: TextStyle(color: Colors.grey),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
+                            onTap: () => context.go('/login'),
                             child: const Text(
                               'Sign In',
                               style: TextStyle(

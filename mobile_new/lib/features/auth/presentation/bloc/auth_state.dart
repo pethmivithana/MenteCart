@@ -37,7 +37,13 @@ class AuthFailure extends AuthState {
 }
 
 class AuthLoggedOut extends AuthState {
-  const AuthLoggedOut();
+  /// Shown once on the login screen (e.g. after successful signup).
+  final String? bannerMessage;
+
+  const AuthLoggedOut({this.bannerMessage});
+
+  @override
+  List<Object?> get props => [bannerMessage];
 }
 
 class AuthUnauthorized extends AuthState {

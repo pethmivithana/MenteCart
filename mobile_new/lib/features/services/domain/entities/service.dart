@@ -1,5 +1,25 @@
 import 'package:equatable/equatable.dart';
 
+/// Bookable slot on a service (matches backend `availableSlots`).
+class ServiceSlot extends Equatable {
+  final String date;
+  final String time;
+  final int capacity;
+  final int bookedCount;
+
+  const ServiceSlot({
+    required this.date,
+    required this.time,
+    required this.capacity,
+    required this.bookedCount,
+  });
+
+  int get remaining => (capacity - bookedCount).clamp(0, capacity);
+
+  @override
+  List<Object?> get props => [date, time, capacity, bookedCount];
+}
+
 /// Service entity - domain layer representation
 class Service extends Equatable {
   final String id;
@@ -13,6 +33,8 @@ class Service extends Equatable {
   final int? reviewCount;
   final String? imageUrl;
   final DateTime createdAt;
+  final int capacityPerSlot;
+  final List<ServiceSlot> availableSlots;
 
   const Service({
     required this.id,
@@ -26,22 +48,26 @@ class Service extends Equatable {
     this.reviewCount,
     this.imageUrl,
     required this.createdAt,
+    this.capacityPerSlot = 1,
+    this.availableSlots = const [],
   });
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    description,
-    category,
-    price,
-    duration,
-    tags,
-    rating,
-    reviewCount,
-    imageUrl,
-    createdAt,
-  ];
+        id,
+        name,
+        description,
+        category,
+        price,
+        duration,
+        tags,
+        rating,
+        reviewCount,
+        imageUrl,
+        createdAt,
+        capacityPerSlot,
+        availableSlots,
+      ];
 }
 
 /// Paginated response for services list
