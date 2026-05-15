@@ -49,9 +49,7 @@ export class CartRepository {
         $setOnInsert: { userId },
       },
       { upsert: true, new: true },
-    )
-      .populate('items.serviceId')
-      .exec();
+    ).exec();
   }
 
   async updateItem(
@@ -68,9 +66,7 @@ export class CartRepository {
       { userId, 'items._id': new mongoose.Types.ObjectId(itemId) },
       { $set: setFields },
       { new: true },
-    )
-      .populate('items.serviceId')
-      .exec();
+    ).exec();
   }
 
   async removeItem(userId: string, itemId: string): Promise<ICart | null> {
@@ -78,9 +74,7 @@ export class CartRepository {
       { userId },
       { $pull: { items: { _id: new mongoose.Types.ObjectId(itemId) } } },
       { new: true },
-    )
-      .populate('items.serviceId')
-      .exec();
+    ).exec();
   }
 
   async clearCart(userId: string): Promise<void> {

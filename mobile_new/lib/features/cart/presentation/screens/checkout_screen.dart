@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../bookings/presentation/bloc/bookings_bloc.dart';
 import '../../../bookings/presentation/bloc/bookings_event.dart';
 import '../../../bookings/presentation/bloc/bookings_state.dart';
 import '../../../payment/data/models/payment_response_model.dart';
+import '../../domain/entities/cart.dart';
 import '../../presentation/bloc/cart_bloc.dart';
 import '../../presentation/bloc/cart_event.dart';
 import '../../presentation/bloc/cart_state.dart';
@@ -29,55 +29,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _launchPayHerePayment(
     BuildContext context,
     Map<String, dynamic> rawDetails,
+    Cart cart,
   ) async {
     try {
       final model = PaymentDetailsModel.fromJson(rawDetails);
-
-      // PayHere sandbox checkout endpoint
-      const payhereUrl = 'https://sandbox.payhere.lk/pay/checkout';
-
-      final params = <String, String>{
-        'merchant_id': model.merchantId,
-        'return_url': model.returnUrl,
-        'cancel_url': model.cancelUrl.isNotEmpty ? model.cancelUrl : model.returnUrl,
-        'notify_url': model.notifyUrl,
-        'order_id': model.orderId,
-        'items': model.items,
-        'amount': model.amount,
-        'currency': model.currency,
-        'first_name': model.firstName,
-        'last_name': model.lastName,
-        'email': model.email,
-        'phone': model.phone,
-        'address': model.address,
-        'city': model.city,
-        'country': model.country,
-        'merchant_key': model.merchantKey,
-      };
-
-      // Remove empty values
-      params.removeWhere((_, v) => v.isEmpty);
-
-      final uri = Uri.parse(payhereUrl).replace(queryParameters: params);
-
-      debugPrint('Launching PayHere URL: $uri');
-
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open PayHere. Please try again.'),
-            ),
-          );
-        }
-      }
+      
+      // Navigate to PayHere gateway screen for card entry
+      context.push(
+        '/payhere-gateway',
+        extra: {
+          'bookingRef': model.orderId,
+          'amount': double.parse(model.amount),
+          'currency': model.currency,
+          'customerName': '${model.firstName} ${model.lastName}'.trim(),
+          'customerEmail': model.email,
+          'customerPhone': model.phone,
+        },
+      );
     } catch (e) {
-      debugPrint('PayHere launch error: $e');
+      debugPrint('PayHere setup error: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment launch failed: $e')),
+          SnackBar(content: Text('Payment setup failed: $e')),
         );
       }
     }
@@ -88,19 +61,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
       body: BlocConsumer<BookingsBloc, BookingsState>(
-        listener: (context, bookingState) {
+        listener: (context, bookingState) async {
           if (bookingState is CheckoutSuccess) {
             if (bookingState.paymentResponse != null) {
-              // Launch PayHere payment in browser
-              _launchPayHerePayment(context, bookingState.paymentResponse!);
-
-              // Navigate to payment processing screen to poll for status
-              context.go(
-                '/payment-processing',
-                extra: {
-                  'bookingRef': bookingState.booking.bookingRef,
-                  'bookingId': bookingState.booking.id,
-                },
+              final cartState = context.read<CartBloc>().state;
+              final cart = cartState is CartSuccess ? cartState.cart : null;
+              
+              // Launch PayHere gateway screen for card entry
+              await _launchPayHerePayment(
+                context,
+                bookingState.paymentResponse!,
+                cart!,
               );
             } else {
               ScaffoldMessenger.of(context).showSnackBar(

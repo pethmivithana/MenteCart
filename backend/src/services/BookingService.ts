@@ -12,6 +12,7 @@ import {
   NotFoundError,
 } from '../utils/ApiError';
 import { logger } from '../utils/logger';
+import { logError, logInfo, logWarning, logDebug } from '../utils/errorLogger';
 import { payHereService, PayHereInitiatePaymentRequest } from './PayHereService';
 
 export interface BookingFilters {
@@ -72,17 +73,37 @@ export class BookingService {
     const reservedSlots: Array<{ serviceId: string; date: string; time: string; qty: number }> = [];
 
     try {
+      logDebug('BookingService.checkout', `Processing checkout for user ${userId}`, {
+        cartItemsCount: cart.items.length,
+      });
+
       const bookingItems = [];
       let totalAmount = 0;
 
       for (const item of cart.items) {
-        // item.serviceId is a plain ObjectId when using findByUserIdRaw
-        const serviceIdStr = item.serviceId.toString();
-
-        const service = await serviceRepository.findByIdRaw(serviceIdStr);
-        if (!service || !service.isActive) {
+        // Validate serviceId exists and is valid
+        if (!item.serviceId) {
+          logError('BookingService.checkout', 'Service ID is null', {
+            itemId: item._id,
+            userId,
+          });
           throw new BadRequestError(
-            `Service "${serviceIdStr}" is no longer available`,
+            `Invalid cart item — service reference missing`,
+            'INVALID_CART_ITEM',
+          );
+        }
+
+        // Extract ID - serviceId is an ObjectId
+        const serviceIdStr = String(item.serviceId);
+        logDebug('BookingService.checkout', `Processing item with service ${serviceIdStr}`);
+
+        // Fetch service details
+        const service = await serviceRepository.findByIdRaw(serviceIdStr);
+        
+        if (!service || !service.isActive) {
+          logWarning('BookingService.checkout', `Service ${serviceIdStr} not found or inactive`);
+          throw new BadRequestError(
+            `Service is no longer available`,
             'SERVICE_UNAVAILABLE',
           );
         }

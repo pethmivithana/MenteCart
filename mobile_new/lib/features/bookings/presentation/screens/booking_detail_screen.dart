@@ -120,7 +120,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     subtitle: Text(
                       '${DateFormat.yMMMd().format((i.selectedDate ?? DateTime.now()).toLocal())} · ${i.selectedSlot ?? ''} × ${i.quantity}',
                     ),
-                    trailing: Text('\$${i.price.toStringAsFixed(2)}'),
+                    trailing: Text('Rs ${i.price.toStringAsFixed(2)}'),
                   ),
                 ),
               ),

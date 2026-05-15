@@ -166,7 +166,7 @@ class _ServiceDetailBodyState extends State<_ServiceDetailBody> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '\$${service.price.toStringAsFixed(2)} · ${service.duration} min · ${service.category}',
+                    'Rs ${service.price.toStringAsFixed(2)} · ${service.duration} min · ${service.category}',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),

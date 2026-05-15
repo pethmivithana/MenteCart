@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+export const checkoutSchema = z.object({
+  body: z.object({
+    returnUrl: z.string().url('Return URL must be a valid URL'),
+    notifyUrl: z.string().url('Notify URL must be a valid URL'),
+  }),
+});
+
 export const bookingIdSchema = z.object({
   params: z.object({
     id: z.string().min(1, 'Booking ID is required'),

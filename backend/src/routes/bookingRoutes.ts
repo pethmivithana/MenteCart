@@ -4,10 +4,12 @@ import {
   listBookings,
   getBookingById,
   cancelBooking,
+  payherWebhook,
 } from '../controllers/bookingController';
 import { authenticate } from '../middlewares/authenticate';
 import { validate } from '../middlewares/validate';
 import {
+  checkoutSchema,
   listBookingsSchema,
   bookingIdSchema,
   cancelBookingSchema,
@@ -15,14 +17,20 @@ import {
 
 const router = Router();
 
-// All booking routes require authentication
+/**
+ * @route   POST /api/bookings/webhook/payhere
+ * @access  Public (signature verification required)
+ */
+router.post('/webhook/payhere', payherWebhook);
+
+// All booking routes below require authentication
 router.use(authenticate);
 
 /**
  * @route   POST /api/bookings/checkout
  * @access  Private
  */
-router.post('/checkout', checkout);
+router.post('/checkout', validate(checkoutSchema), checkout);
 
 /**
  * @route   GET /api/bookings

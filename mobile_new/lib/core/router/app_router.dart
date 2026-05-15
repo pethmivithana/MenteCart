@@ -18,6 +18,7 @@ import '../../features/bookings/presentation/screens/booking_detail_screen.dart'
 import '../../features/payment/presentation/screens/payment_processing_screen.dart';
 import '../../features/payment/presentation/screens/payment_success_screen.dart';
 import '../../features/payment/presentation/screens/payment_failed_screen.dart';
+import '../../features/payment/presentation/screens/payhere_gateway_screen.dart';
 import '../../features/bookings/domain/entities/booking.dart';
 
 /// Notifies [GoRouter] when [AuthBloc] emits so redirects re-run.
@@ -124,6 +125,21 @@ class AppRouter {
           path: '/checkout',
           name: 'checkout',
           builder: (context, state) => const CheckoutScreen(),
+        ),
+        GoRoute(
+          path: '/payhere-gateway',
+          name: 'payhere-gateway',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return PayhereGatewayScreen(
+              bookingRef: extra?['bookingRef'] ?? '',
+              amount: extra?['amount'] ?? 0.0,
+              currency: extra?['currency'] ?? 'LKR',
+              customerName: extra?['customerName'] ?? '',
+              customerEmail: extra?['customerEmail'] ?? '',
+              customerPhone: extra?['customerPhone'] ?? '',
+            );
+          },
         ),
         GoRoute(
           path: '/bookings',

@@ -23,6 +23,7 @@ export interface UpdateCartItemDto {
  */
 export class CartService {
   async getCart(userId: string): Promise<ICart> {
+    // Fetch with populated service details for frontend display
     const cart = await cartRepository.findByUserId(userId);
     if (!cart) {
       // Return an empty shell — no DB record yet
@@ -33,6 +34,11 @@ export class CartService {
       } as unknown as ICart;
     }
     return cart;
+  }
+
+  async getCartRaw(userId: string): Promise<ICart | null> {
+    // Fetch without populating — used during checkout
+    return cartRepository.findByUserIdRaw(userId);
   }
 
   async addItem(userId: string, dto: AddCartItemDto): Promise<ICart> {
