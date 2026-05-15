@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
+console.log("MERCHANT ID:", process.env.PAYHERE_MERCHANT_ID);
+
 import { createApp } from './app';
 import { seedDemoServicesIfEmpty } from './bootstrap/seedDemoServices';
 import { connectDatabase } from './config/database';

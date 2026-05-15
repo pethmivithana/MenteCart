@@ -3,17 +3,17 @@ import { env } from '../config/env';
 import { BookingStatus, IBooking } from '../models/Booking';
 import { bookingRepository } from '../repositories/BookingRepository';
 import { cartRepository } from '../repositories/CartRepository';
-import { serviceRepository } from '../repositories/ServiceRepository';
 import { paymentRepository } from '../repositories/PaymentRepository';
+import { serviceRepository } from '../repositories/ServiceRepository';
 import {
-  BadRequestError,
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
 } from '../utils/ApiError';
+import { logDebug, logError, logWarning } from '../utils/errorLogger';
 import { logger } from '../utils/logger';
-import { logError, logInfo, logWarning, logDebug } from '../utils/errorLogger';
-import { payHereService, PayHereInitiatePaymentRequest } from './PayHereService';
+import { PayHereInitiatePaymentRequest, payHereService } from './PayHereService';
 
 export interface BookingFilters {
   status?: BookingStatus;
@@ -100,10 +100,25 @@ export class BookingService {
         // Fetch service details
         const service = await serviceRepository.findByIdRaw(serviceIdStr);
         
-        if (!service || !service.isActive) {
-          logWarning('BookingService.checkout', `Service ${serviceIdStr} not found or inactive`);
+        if (!service) {
+          logError('BookingService.checkout', `Service not found`, {
+            serviceId: serviceIdStr,
+            userId,
+          });
           throw new BadRequestError(
-            `Service is no longer available`,
+            `Service not found or has been removed`,
+            'SERVICE_NOT_FOUND',
+          );
+        }
+
+        if (!service.isActive) {
+          logWarning('BookingService.checkout', `Service is inactive`, {
+            serviceId: serviceIdStr,
+            serviceTitle: service.title,
+            userId,
+          });
+          throw new BadRequestError(
+            `"${service.title}" is no longer available for booking`,
             'SERVICE_UNAVAILABLE',
           );
         }

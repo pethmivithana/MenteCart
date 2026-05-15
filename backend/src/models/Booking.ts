@@ -7,7 +7,7 @@ export type BookingStatus =
   | 'cancelled'
   | 'failed';
 
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 export interface IBookingItem {
   _id: mongoose.Types.ObjectId;
@@ -84,7 +84,7 @@ const bookingSchema = new Schema<IBooking>(
     },
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'failed', 'cancelled'],
+      enum: ['pending', 'completed', 'failed', 'cancelled'],
       default: 'pending',
     },
     paymentId: { type: String },

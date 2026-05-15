@@ -1,5 +1,5 @@
-import { Booking, IBooking, BookingStatus, PaymentStatus } from '../models/Booking';
 import mongoose from 'mongoose';
+import { Booking, BookingStatus, IBooking, PaymentStatus } from '../models/Booking';
 
 export interface BookingFilters {
   userId: string;
@@ -71,7 +71,7 @@ export class BookingRepository {
   async confirmBookingAfterPayment(id: string): Promise<IBooking | null> {
     return Booking.findByIdAndUpdate(
       id,
-      { $set: { status: 'confirmed', paymentStatus: 'paid' } },
+      { $set: { status: 'confirmed', paymentStatus: 'completed' } },
       { new: true },
     ).exec();
   }

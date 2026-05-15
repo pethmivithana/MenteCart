@@ -1,12 +1,12 @@
 import { Response } from 'express';
-import { bookingService } from '../services/BookingService';
-import { paymentRepository } from '../repositories/PaymentRepository';
-import { payHereService } from '../services/PayHereService';
-import { asyncHandler } from '../utils/asyncHandler';
-import { ApiResponse } from '../utils/ApiResponse';
-import { BadRequestError, UnauthorizedError } from '../utils/ApiError';
-import { AuthRequest } from '../types';
 import { BookingStatus } from '../models/Booking';
+import { paymentRepository } from '../repositories/PaymentRepository';
+import { bookingService } from '../services/BookingService';
+import { payHereService } from '../services/PayHereService';
+import { AuthRequest } from '../types';
+import { BadRequestError, UnauthorizedError } from '../utils/ApiError';
+import { ApiResponse } from '../utils/ApiResponse';
+import { asyncHandler } from '../utils/asyncHandler';
 
 /**
  * POST /api/bookings/checkout  [protected]
@@ -17,20 +17,35 @@ export const checkout: any = asyncHandler(async (req: AuthRequest, res: Response
   const { returnUrl, notifyUrl } = req.body;
   
   if (!returnUrl || !notifyUrl) {
-    throw new BadRequestError('returnUrl and notifyUrl are required');
+    throw new BadRequestError('returnUrl and notifyUrl are required', 'MISSING_URLS');
   }
 
-  const { booking, paymentDetails } = await bookingService.checkout(
-    req.user!.userId,
-    returnUrl,
-    notifyUrl,
-  );
+  if (typeof returnUrl !== 'string' || typeof notifyUrl !== 'string') {
+    throw new BadRequestError('returnUrl and notifyUrl must be valid URLs', 'INVALID_URLS');
+  }
 
-  ApiResponse.created(
-    res,
-    { booking, paymentDetails },
-    'Booking initiated - proceed to payment',
-  );
+  try {
+    const { booking, paymentDetails } = await bookingService.checkout(
+      req.user!.userId,
+      returnUrl,
+      notifyUrl,
+    );
+
+    ApiResponse.created(
+      res,
+      { booking, paymentDetails },
+      'Booking initiated - proceed to payment',
+    );
+  } catch (error: any) {
+    // Log detailed error for debugging
+    if (error.code && error.statusCode) {
+      throw error;
+    }
+    throw new BadRequestError(
+      error.message || 'Checkout failed',
+      'CHECKOUT_ERROR',
+    );
+  }
 });
 
 /**

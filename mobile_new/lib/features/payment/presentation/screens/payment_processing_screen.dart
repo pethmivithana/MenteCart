@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile_new/features/payment/data/models/payment_response_model.dart';
 import 'package:mobile_new/features/payment/presentation/bloc/payment_bloc.dart';
-import 'package:mobile_new/features/payment/presentation/bloc/payment_event.dart';
 import 'package:mobile_new/features/payment/presentation/bloc/payment_state.dart';
 
 class PaymentProcessingScreen extends StatelessWidget {

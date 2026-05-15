@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { env } from '../config/env';
-import { logger } from '../utils/logger';
 import { BadRequestError } from '../utils/ApiError';
+import { logger } from '../utils/logger';
 
 export interface PayHereInitiatePaymentRequest {
   bookingRef: string;
@@ -41,7 +41,17 @@ export class PayHereService {
     req: PayHereInitiatePaymentRequest,
     returnUrl: string,
   ): PayHerePaymentResponse {
+    // Validate required environment variables
     const merchantId = (env as any).PAYHERE_MERCHANT_ID;
+    if (!merchantId) {
+      logger.error('Missing PAYHERE_MERCHANT_ID in environment');
+      throw new BadRequestError('Payment gateway not configured', 'PAYMENT_GATEWAY_ERROR');
+    }
+
+    if (!returnUrl) {
+      throw new BadRequestError('Return URL is required for payment', 'INVALID_RETURN_URL');
+    }
+
     const merchantKey = this.generateMerchantKey(merchantId, req.bookingRef, req.amount);
 
     const response: PayHerePaymentResponse = {
@@ -64,8 +74,8 @@ export class PayHereService {
     };
 
     logger.info(
-      { bookingRef: req.bookingRef, amount: req.amount },
-      'PayHere payment initiated',
+      { bookingRef: req.bookingRef, amount: req.amount, merchantId },
+      'PayHere payment initiated successfully',
     );
 
     return response;

@@ -1,5 +1,5 @@
-import { Service, IService } from '../models/Service';
 import mongoose from 'mongoose';
+import { IService, Service } from '../models/Service';
 
 export interface ServiceFilters {
   category?: string;
@@ -82,16 +82,26 @@ export class ServiceRepository {
     slotTime: string,
     increment: number,
   ): Promise<IService | null> {
+    // First, fetch the service to check current capacity
+    const service = await Service.findById(serviceId).exec();
+    if (!service) return null;
+
+    const slot = service.availableSlots.find(
+      (s) => s.date === slotDate && s.time === slotTime,
+    );
+    if (!slot) return null;
+
+    // Check if incrementing would exceed capacity
+    if (slot.bookedCount + increment > slot.capacity) {
+      return null; // Capacity exceeded - return null to indicate failure
+    }
+
+    // Capacity is available, atomically increment
     return Service.findOneAndUpdate(
       {
         _id: serviceId,
-        availableSlots: {
-          $elemMatch: {
-            date: slotDate,
-            time: slotTime,
-            $expr: { $lt: ['$bookedCount', '$capacity'] },
-          },
-        },
+        'availableSlots.date': slotDate,
+        'availableSlots.time': slotTime,
       },
       {
         $inc: { 'availableSlots.$[slot].bookedCount': increment },
