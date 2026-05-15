@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_new/features/payment/presentation/bloc/payment_bloc.dart';
+import 'package:mobile_new/features/payment/presentation/bloc/payment_event.dart';
 import 'package:mobile_new/features/payment/presentation/bloc/payment_state.dart';
 
-class PaymentProcessingScreen extends StatelessWidget {
+class PaymentProcessingScreen extends StatefulWidget {
   final String bookingRef;
   final String bookingId;
 
@@ -13,6 +14,25 @@ class PaymentProcessingScreen extends StatelessWidget {
     required this.bookingRef,
     required this.bookingId,
   });
+
+  @override
+  State<PaymentProcessingScreen> createState() => _PaymentProcessingScreenState();
+}
+
+class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Trigger payment status polling when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PaymentBloc>().add(
+        RefreshPaymentStatusEvent(
+          bookingId: widget.bookingId,
+          maxRetries: 30, // Poll for up to 60 seconds (30 retries * 2 second interval)
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +53,7 @@ class PaymentProcessingScreen extends StatelessWidget {
                   extra: {
                     'message': state.message,
                     'reason': state.reason,
-                    'bookingId': bookingId,
+                    'bookingId': widget.bookingId,
                   },
                 );
               } else if (state is PaymentErrorState) {
@@ -42,7 +62,7 @@ class PaymentProcessingScreen extends StatelessWidget {
                   extra: {
                     'message': 'Error',
                     'reason': state.error,
-                    'bookingId': bookingId,
+                    'bookingId': widget.bookingId,
                   },
                 );
               }

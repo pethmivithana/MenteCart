@@ -23,18 +23,22 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My bookings'),
+        title: const Text('📅 My Bookings'),
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh bookings',
             onPressed: () => context.read<BookingsBloc>().add(
                   const GetBookingsEvent(),
                 ),
           ),
           IconButton(
             icon: const Icon(Icons.home_outlined),
+            tooltip: 'Back to home',
             onPressed: () => context.go('/home'),
           ),
         ],
@@ -49,13 +53,31 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(state.message, textAlign: TextAlign.center),
+                  const Text('❌', style: TextStyle(fontSize: 56)),
                   const SizedBox(height: 16),
-                  FilledButton(
+                  Text(
+                    'Oops! Error loading bookings',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFEF4444),
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
                     onPressed: () => context.read<BookingsBloc>().add(
                           const GetBookingsEvent(),
                         ),
-                    child: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -67,13 +89,29 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.event_note, size: 56),
+                    const Text('✨', style: TextStyle(fontSize: 80)),
                     const SizedBox(height: 12),
-                    const Text('No bookings yet'),
-                    const SizedBox(height: 16),
-                    FilledButton(
+                    Text(
+                      'No bookings yet',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Start booking wellness services!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF6B7280),
+                          ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.explore),
+                      label: const Text('Browse Services'),
                       onPressed: () => context.go('/home'),
-                      child: const Text('Browse services'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C63FF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      ),
                     ),
                   ],
                 ),

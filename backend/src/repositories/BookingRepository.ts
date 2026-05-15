@@ -46,6 +46,10 @@ export class BookingRepository {
     return Booking.findOne({ _id: id, userId }).exec();
   }
 
+  async findByRefAndUserId(bookingRef: string, userId: string): Promise<IBooking | null> {
+    return Booking.findOne({ bookingRef, userId }).exec();
+  }
+
   async updateStatus(
     id: string,
     status: BookingStatus,

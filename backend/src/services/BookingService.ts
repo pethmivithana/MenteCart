@@ -251,8 +251,47 @@ export class BookingService {
   }
 
   async getBookingById(userId: string, bookingId: string): Promise<IBooking> {
-    const booking = await bookingRepository.findByIdAndUserId(bookingId, userId);
+    // Try to find by MongoDB _id first (for internal requests)
+    let booking = await bookingRepository.findByIdAndUserId(bookingId, userId);
+    
+    // If not found and looks like a booking reference, try by bookingRef
+    if (!booking && !mongoose.Types.ObjectId.isValid(bookingId)) {
+      booking = await bookingRepository.findByRefAndUserId(bookingId, userId);
+    }
+    
     if (!booking) throw new NotFoundError('Booking not found');
+
+    // In sandbox mode (PAYHERE_API_URL contains sandbox), auto-confirm pending payments
+    if (
+      booking.status === 'pending' &&
+      booking.paymentStatus === 'pending' &&
+      env.PAYHERE_API_URL.includes('sandbox')
+    ) {
+      logDebug('BookingService.getBookingById', 'Auto-confirming sandbox payment', {
+        bookingRef: booking.bookingRef,
+      });
+      
+      // Find the payment record
+      const payment = await paymentRepository.findByBookingId(booking._id.toString());
+      if (payment) {
+        // Mark payment as processed and update status
+        await paymentRepository.markWebhookProcessed(payment._id.toString());
+        await paymentRepository.updateStatus(payment._id.toString(), 'completed');
+      }
+
+      // Confirm the booking (update status to 'confirmed' and paymentStatus to 'completed')
+      booking = await bookingRepository.confirmBookingAfterPayment(booking._id.toString());
+      if (!booking) throw new NotFoundError('Failed to confirm booking');
+
+      // Clear user's cart after successful payment
+      await cartRepository.clearCart(userId);
+
+      logger.info(
+        { bookingId: booking._id, bookingRef: booking.bookingRef },
+        'Booking auto-confirmed in sandbox mode',
+      );
+    }
+
     return booking;
   }
 

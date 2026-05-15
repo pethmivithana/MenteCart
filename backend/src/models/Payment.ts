@@ -1,3 +1,4 @@
+
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type PaymentMethod = 'payhere' | 'cash';

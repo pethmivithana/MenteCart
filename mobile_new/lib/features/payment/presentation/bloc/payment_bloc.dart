@@ -45,16 +45,21 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
               ));
             },
             (booking) {
-              if (booking.paymentStatus.toString().endsWith('paid')) {
+              // Success if booking is confirmed and payment is completed
+              if (booking.status.toString().endsWith('confirmed') && 
+                  booking.paymentStatus.toString().endsWith('completed')) {
                 emit(PaymentSuccessState(booking));
               } else if (booking.paymentStatus.toString().endsWith('failed') ||
-                  booking.paymentStatus.toString().endsWith('cancelled')) {
-                final statusStr = booking.paymentStatus.toString().split('.').last;
-                emit(PaymentFailureState(
-                  message: 'Payment $statusStr',
-                  reason: statusStr == 'failed'
-                      ? 'Your payment was declined. Please try again.'
-                      : 'Payment was cancelled.',
+                  booking.status.toString().endsWith('failed')) {
+                emit(const PaymentFailureState(
+                  message: 'Payment Failed',
+                  reason: 'Your payment was declined. Please try again.',
+                ));
+              } else if (booking.paymentStatus.toString().endsWith('cancelled') ||
+                  booking.status.toString().endsWith('cancelled')) {
+                emit(const PaymentFailureState(
+                  message: 'Payment Cancelled',
+                  reason: 'Payment was cancelled.',
                 ));
               } else {
                 retryCount++;

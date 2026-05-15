@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 enum BookingStatus { pending, confirmed, completed, cancelled }
 
 /// Payment status enum
-enum PaymentStatus { pending, paid, failed, cancelled }
+enum PaymentStatus { pending, completed, failed, cancelled }
 
 /// BookingItem in a booking
 class BookingItem extends Equatable {

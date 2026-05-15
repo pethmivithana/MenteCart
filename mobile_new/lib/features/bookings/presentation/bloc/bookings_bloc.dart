@@ -50,10 +50,12 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
           errorCode: failure.errorCode,
         ),
       ),
-      (checkoutResponse) => emit(CheckoutSuccess(
-        checkoutResponse.booking,
-        paymentResponse: checkoutResponse.paymentDetails,
-      )),
+      (checkoutResponse) {
+        emit(CheckoutSuccess(
+          checkoutResponse.booking,
+          paymentResponse: checkoutResponse.paymentDetails,
+        ));
+      },
     );
   }
 

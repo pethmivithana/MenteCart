@@ -38,6 +38,8 @@ import '../../features/bookings/domain/usecases/get_booking_by_id_usecase.dart';
 import '../../features/bookings/domain/usecases/cancel_booking_usecase.dart';
 import '../../features/bookings/presentation/bloc/bookings_bloc.dart';
 
+import '../../features/payment/presentation/bloc/payment_bloc.dart';
+
 final GetIt sl = GetIt.instance;
 
 /// Manual dependency injection setup using GetIt.
@@ -102,4 +104,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetBookingByIdUseCase(sl()));
   sl.registerLazySingleton(() => CancelBookingUseCase(sl()));
   sl.registerFactory(() => BookingsBloc(sl(), sl(), sl(), sl()));
+
+  // ─── Payment ───────────────────────────────────────────────────────────
+  sl.registerFactory(() => PaymentBloc(bookingRepository: sl()));
 }

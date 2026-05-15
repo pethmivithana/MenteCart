@@ -75,26 +75,26 @@ class _PayhereGatewayScreenState extends State<PayhereGatewayScreen> {
   }
 
   Future<void> _processPayment() async {
-    if (!_formKey.currentState!.validate()) return;
-
+    // Accept any card details in sandbox mode - skip validation
     setState(() => _isProcessing = true);
 
     AppLogger.logInfo('PaymentGateway', 'Processing payment', {
       'bookingRef': widget.bookingRef,
       'amount': widget.amount,
       'currency': widget.currency,
+      'mode': 'sandbox',
     });
 
     try {
-      // Simulate payment processing with PayHere
-      // In production, this would make an API call to PayHere gateway
-      await Future.delayed(const Duration(seconds: 3));
+      // Simulate payment processing with PayHere sandbox
+      await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
         setState(() => _isProcessing = false);
         
         AppLogger.logInfo('PaymentGateway', 'Payment processed successfully', {
           'bookingRef': widget.bookingRef,
+          'cardNumber': _cardNumberController.text.replaceAll(' ', '').substring(12),
         });
 
         // Navigate to payment processing screen to poll for webhook
@@ -210,8 +210,8 @@ class _PayhereGatewayScreenState extends State<PayhereGatewayScreen> {
                         TextFormField(
                           controller: _cardNumberController,
                           decoration: InputDecoration(
-                            labelText: 'Card Number',
-                            hintText: '4111 1111 1111 1111',
+                            labelText: 'Card Number (Sandbox)',
+                            hintText: '4111 1111 1111 1111 (any 16 digits)',
                             prefixIcon: const Icon(Icons.credit_card),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -235,10 +235,6 @@ class _PayhereGatewayScreenState extends State<PayhereGatewayScreen> {
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Card number is required';
-                            }
-                            final cleaned = value.replaceAll(' ', '');
-                            if (cleaned.length != 16) {
-                              return 'Card number must be 16 digits';
                             }
                             return null;
                           },
@@ -295,9 +291,6 @@ class _PayhereGatewayScreenState extends State<PayhereGatewayScreen> {
                                   if (value == null || value.isEmpty) {
                                     return 'Expiry is required';
                                   }
-                                  if (value.length != 5) {
-                                    return 'Invalid format';
-                                  }
                                   return null;
                                 },
                               ),
@@ -321,9 +314,6 @@ class _PayhereGatewayScreenState extends State<PayhereGatewayScreen> {
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'CVV is required';
-                                  }
-                                  if (value.length != 3) {
-                                    return 'Must be 3 digits';
                                   }
                                   return null;
                                 },

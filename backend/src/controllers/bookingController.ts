@@ -24,28 +24,17 @@ export const checkout: any = asyncHandler(async (req: AuthRequest, res: Response
     throw new BadRequestError('returnUrl and notifyUrl must be valid URLs', 'INVALID_URLS');
   }
 
-  try {
-    const { booking, paymentDetails } = await bookingService.checkout(
-      req.user!.userId,
-      returnUrl,
-      notifyUrl,
-    );
+  const { booking, paymentDetails } = await bookingService.checkout(
+    req.user!.userId,
+    returnUrl,
+    notifyUrl,
+  );
 
-    ApiResponse.created(
-      res,
-      { booking, paymentDetails },
-      'Booking initiated - proceed to payment',
-    );
-  } catch (error: any) {
-    // Log detailed error for debugging
-    if (error.code && error.statusCode) {
-      throw error;
-    }
-    throw new BadRequestError(
-      error.message || 'Checkout failed',
-      'CHECKOUT_ERROR',
-    );
-  }
+  ApiResponse.created(
+    res,
+    { booking, paymentDetails },
+    'Booking initiated - proceed to payment',
+  );
 });
 
 /**

@@ -9,6 +9,7 @@ import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/services/presentation/bloc/services_bloc.dart';
 import 'features/cart/presentation/bloc/cart_bloc.dart';
 import 'features/bookings/presentation/bloc/bookings_bloc.dart';
+import 'features/payment/presentation/bloc/payment_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -43,6 +44,7 @@ class MenteCartApp extends StatelessWidget {
         BlocProvider.value(value: sl<ServicesBloc>()),
         BlocProvider.value(value: sl<CartBloc>()),
         BlocProvider.value(value: sl<BookingsBloc>()),
+        BlocProvider.value(value: sl<PaymentBloc>()),
       ],
       child: MaterialApp.router(
         title: 'MenteCart',

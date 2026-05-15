@@ -34,7 +34,9 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'notifyUrl': notifyUrl,
         },
       );
-      final data = response.data['data'] as Map<String, dynamic>;
+      // Backend returns: { success: true, message, data: { booking, paymentDetails } }
+      final responseData = response.data;
+      final data = responseData['data'] as Map<String, dynamic>;
       return PaymentResponseModel.fromJson(data);
     } on DioException {
       rethrow;

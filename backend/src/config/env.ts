@@ -17,6 +17,10 @@ const envSchema = z.object({
   CART_EXPIRY_HOURS: z.string().default('24'),
   MAX_BOOKINGS_PER_DAY: z.string().default('5'),
   CORS_ORIGIN: z.string().default('*'),
+  PAYHERE_MERCHANT_ID: z.string().min(1, 'PAYHERE_MERCHANT_ID is required'),
+  PAYHERE_SECRET: z.string().min(1, 'PAYHERE_SECRET is required'),
+  WEBHOOK_SECRET: z.string().default(''),
+  PAYHERE_API_URL: z.string().default('https://sandbox.payhere.lk/pay/checkout'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -33,4 +37,8 @@ export const env = {
   BCRYPT_SALT_ROUNDS: parseInt(parsed.data.BCRYPT_SALT_ROUNDS, 10),
   CART_EXPIRY_HOURS: parseInt(parsed.data.CART_EXPIRY_HOURS, 10),
   MAX_BOOKINGS_PER_DAY: parseInt(parsed.data.MAX_BOOKINGS_PER_DAY, 10),
+  PAYHERE_MERCHANT_ID: parsed.data.PAYHERE_MERCHANT_ID,
+  PAYHERE_SECRET: parsed.data.PAYHERE_SECRET,
+  WEBHOOK_SECRET: parsed.data.WEBHOOK_SECRET,
+  PAYHERE_API_URL: parsed.data.PAYHERE_API_URL,
 };

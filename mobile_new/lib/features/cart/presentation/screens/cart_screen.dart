@@ -30,13 +30,26 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cart'),
+        title: const Text('🛒 Your Cart'),
+        elevation: 0,
         actions: [
-          TextButton(
-            onPressed: () => context.push('/checkout'),
-            child: const Text('Checkout'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.payment, size: 18),
+              label: const Text('Checkout'),
+              onPressed: () => context.push('/checkout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6C63FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -44,7 +57,10 @@ class _CartScreenState extends State<CartScreen> {
         listener: (context, state) {
           if (state is CartFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text('⚠️ ${state.message}'),
+                backgroundColor: const Color(0xFFEF4444),
+              ),
             );
           }
         },
@@ -57,13 +73,29 @@ class _CartScreenState extends State<CartScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.shopping_cart_outlined, size: 64),
+                  const Text('🛒', style: TextStyle(fontSize: 80)),
                   const SizedBox(height: 16),
-                  const Text('Your cart is empty'),
-                  const SizedBox(height: 16),
-                  FilledButton(
+                  Text(
+                    'Your cart is empty',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add some wellness services to get started!',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF6B7280),
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.explore, size: 20),
+                    label: const Text('Browse Services'),
                     onPressed: () => context.go('/home'),
-                    child: const Text('Browse services'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    ),
                   ),
                 ],
               ),
@@ -83,7 +115,11 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF1C1C2E), const Color(0xFF252538)]
+                          : [const Color(0xFF6C63FF).withOpacity(0.1), const Color(0xFF4B44CC).withOpacity(0.1)],
+                    ),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(20),
                       bottomRight: Radius.circular(20),

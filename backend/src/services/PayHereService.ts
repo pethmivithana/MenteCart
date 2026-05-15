@@ -42,7 +42,7 @@ export class PayHereService {
     returnUrl: string,
   ): PayHerePaymentResponse {
     // Validate required environment variables
-    const merchantId = (env as any).PAYHERE_MERCHANT_ID;
+    const merchantId = env.PAYHERE_MERCHANT_ID;
     if (!merchantId) {
       logger.error('Missing PAYHERE_MERCHANT_ID in environment');
       throw new BadRequestError('Payment gateway not configured', 'PAYMENT_GATEWAY_ERROR');
@@ -86,7 +86,7 @@ export class PayHereService {
    * Format: SHA1("{merchant_id}{order_id}{amount}{merchant_secret}")
    */
   private generateMerchantKey(merchantId: string, orderId: string, amount: number): string {
-    const hashString = `${merchantId}${orderId}${amount}${(env as any).PAYHERE_SECRET}`;
+    const hashString = `${merchantId}${orderId}${amount}${env.PAYHERE_SECRET}`;
     return crypto.createHash('sha1').update(hashString).digest('hex');
   }
 
@@ -109,7 +109,7 @@ export class PayHereService {
 
       const [merchantId, orderId, paymentStatus, signature] = parts;
 
-      if (merchantId !== (env as any).PAYHERE_MERCHANT_ID) {
+      if (merchantId !== env.PAYHERE_MERCHANT_ID) {
         logger.warn({ merchantId }, 'Merchant ID mismatch in webhook');
         return false;
       }
@@ -117,7 +117,7 @@ export class PayHereService {
       // Reconstruct the hash: MD5(merchant_secret + order_id + payment_status)
       const expectedHash = crypto
         .createHash('md5')
-        .update(`${(env as any).PAYHERE_SECRET}${orderId}${paymentStatus}`)
+        .update(`${env.PAYHERE_SECRET}${orderId}${paymentStatus}`)
         .digest('hex');
 
       const isValid = signature === expectedHash;
