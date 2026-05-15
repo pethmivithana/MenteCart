@@ -11,10 +11,10 @@ class PaymentProcessingScreen extends StatelessWidget {
   final String bookingId;
 
   const PaymentProcessingScreen({
-    Key? key,
+    super.key,
     required this.bookingRef,
     required this.bookingId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

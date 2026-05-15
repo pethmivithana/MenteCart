@@ -7,11 +7,11 @@ class PaymentFailedScreen extends StatelessWidget {
   final String? bookingId;
 
   const PaymentFailedScreen({
-    Key? key,
+    super.key,
     required this.message,
     this.reason,
     this.bookingId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

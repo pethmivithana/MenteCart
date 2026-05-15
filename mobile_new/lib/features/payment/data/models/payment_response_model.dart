@@ -8,10 +8,15 @@ class PaymentDetailsModel extends Equatable {
   final String amount;
   final String currency;
   final String returnUrl;
+  final String cancelUrl;
   final String notifyUrl;
-  final String customerName;
-  final String customerEmail;
-  final String customerPhone;
+  final String firstName;
+  final String lastName;
+  final String email;
+  final String phone;
+  final String address;
+  final String city;
+  final String country;
   final String merchantKey;
 
   const PaymentDetailsModel({
@@ -21,25 +26,39 @@ class PaymentDetailsModel extends Equatable {
     required this.amount,
     required this.currency,
     required this.returnUrl,
+    required this.cancelUrl,
     required this.notifyUrl,
-    required this.customerName,
-    required this.customerEmail,
-    required this.customerPhone,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.phone,
+    required this.address,
+    required this.city,
+    required this.country,
     required this.merchantKey,
   });
 
+  /// Backend PayHerePaymentResponse fields:
+  /// merchant_id, return_web, cancel_url, notify_url, order_id,
+  /// items, amount, currency, first_name, last_name, email, phone,
+  /// address, city, country, merchant_key
   factory PaymentDetailsModel.fromJson(Map<String, dynamic> json) {
     return PaymentDetailsModel(
       merchantId: json['merchant_id'] as String? ?? '',
       orderId: json['order_id'] as String? ?? '',
-      items: json['items'] as String? ?? '',
+      items: json['items'] as String? ?? 'Service Booking',
       amount: json['amount'] as String? ?? '0',
       currency: json['currency'] as String? ?? 'LKR',
-      returnUrl: json['return_url'] as String? ?? '',
+      returnUrl: json['return_web'] as String? ?? json['return_url'] as String? ?? '',
+      cancelUrl: json['cancel_url'] as String? ?? '',
       notifyUrl: json['notify_url'] as String? ?? '',
-      customerName: json['customer_name'] as String? ?? '',
-      customerEmail: json['customer_email'] as String? ?? '',
-      customerPhone: json['customer_phone'] as String? ?? '',
+      firstName: json['first_name'] as String? ?? '',
+      lastName: json['last_name'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      address: json['address'] as String? ?? 'N/A',
+      city: json['city'] as String? ?? 'N/A',
+      country: json['country'] as String? ?? 'Sri Lanka',
       merchantKey: json['merchant_key'] as String? ?? '',
     );
   }
@@ -50,27 +69,24 @@ class PaymentDetailsModel extends Equatable {
     'items': items,
     'amount': amount,
     'currency': currency,
-    'return_url': returnUrl,
+    'return_web': returnUrl,
+    'cancel_url': cancelUrl,
     'notify_url': notifyUrl,
-    'customer_name': customerName,
-    'customer_email': customerEmail,
-    'customer_phone': customerPhone,
+    'first_name': firstName,
+    'last_name': lastName,
+    'email': email,
+    'phone': phone,
+    'address': address,
+    'city': city,
+    'country': country,
     'merchant_key': merchantKey,
   };
 
   @override
   List<Object?> get props => [
-    merchantId,
-    orderId,
-    items,
-    amount,
-    currency,
-    returnUrl,
-    notifyUrl,
-    customerName,
-    customerEmail,
-    customerPhone,
-    merchantKey,
+    merchantId, orderId, items, amount, currency,
+    returnUrl, cancelUrl, notifyUrl, firstName, lastName,
+    email, phone, address, city, country, merchantKey,
   ];
 }
 

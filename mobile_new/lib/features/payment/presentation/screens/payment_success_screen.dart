@@ -7,9 +7,9 @@ class PaymentSuccessScreen extends StatelessWidget {
   final Booking booking;
 
   const PaymentSuccessScreen({
-    Key? key,
+    super.key,
     required this.booking,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

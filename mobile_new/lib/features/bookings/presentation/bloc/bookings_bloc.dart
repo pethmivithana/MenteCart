@@ -6,6 +6,9 @@ import '../../domain/usecases/get_bookings_usecase.dart';
 import 'bookings_event.dart';
 import 'bookings_state.dart';
 
+/// Base API URL - update to match your backend
+const _backendBaseUrl = 'http://10.0.2.2:5000';
+
 class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
   final CheckoutUseCase checkoutUseCase;
   final GetBookingsUseCase getBookingsUseCase;
@@ -29,14 +32,17 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     Emitter<BookingsState> emit,
   ) async {
     emit(const BookingsLoading());
-    const baseUrl = 'http://localhost:3000'; // Update with your app URL
-    final returnUrl = '$baseUrl/payment-processing';
-    final notifyUrl = '$baseUrl/api/payments/webhook'; // Backend webhook URL
-    
+
+    // returnUrl: where PayHere redirects the user after payment
+    // notifyUrl: PayHere calls this backend endpoint with payment status
+    const returnUrl = 'mentecart://payment-result';
+    const notifyUrl = '$_backendBaseUrl/api/bookings/webhook/payhere';
+
     final result = await checkoutUseCase(CheckoutParams(
       returnUrl: returnUrl,
       notifyUrl: notifyUrl,
     ));
+
     result.fold(
       (failure) => emit(
         BookingsFailure(
@@ -117,6 +123,3 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
   }
 }
 
-class NoParams {
-  const NoParams();
-}

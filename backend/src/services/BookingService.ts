@@ -35,8 +35,7 @@ export class BookingService {
    *  5. Create payment record
    *  6. Return booking with PayHere payment details
    *
-   * Booking is NOT confirmed until payment webhook succeeds.
-   * If slot reservation fails partway through, already-reserved slots are released.
+   * Uses findByUserIdRaw (no populate) so item.serviceId stays as a plain ObjectId.
    */
   async checkout(
     userId: string,
@@ -46,7 +45,9 @@ export class BookingService {
     booking: IBooking;
     paymentDetails: Record<string, any>;
   }> {
-    const cart = await cartRepository.findByUserId(userId);
+    // Use raw (unpopulated) cart so item.serviceId is a plain ObjectId string,
+    // not a full Mongoose Service document.
+    const cart = await cartRepository.findByUserIdRaw(userId);
 
     if (!cart || cart.items.length === 0) {
       throw new BadRequestError('Your cart is empty', 'CART_EMPTY');
@@ -75,10 +76,13 @@ export class BookingService {
       let totalAmount = 0;
 
       for (const item of cart.items) {
-        const service = await serviceRepository.findByIdRaw(item.serviceId.toString());
+        // item.serviceId is a plain ObjectId when using findByUserIdRaw
+        const serviceIdStr = item.serviceId.toString();
+
+        const service = await serviceRepository.findByIdRaw(serviceIdStr);
         if (!service || !service.isActive) {
           throw new BadRequestError(
-            `Service "${item.serviceId}" is no longer available`,
+            `Service "${serviceIdStr}" is no longer available`,
             'SERVICE_UNAVAILABLE',
           );
         }
@@ -104,7 +108,7 @@ export class BookingService {
 
         // Atomically reserve the slot
         const updated = await serviceRepository.incrementSlotBookedCount(
-          item.serviceId.toString(),
+          serviceIdStr,
           item.slotDate,
           item.slotTime,
           item.quantity,
@@ -118,7 +122,7 @@ export class BookingService {
         }
 
         reservedSlots.push({
-          serviceId: item.serviceId.toString(),
+          serviceId: serviceIdStr,
           date: item.slotDate,
           time: item.slotTime,
           qty: item.quantity,
@@ -177,16 +181,13 @@ export class BookingService {
         bookingRef: booking.bookingRef,
         amount: totalAmount,
         currency: 'LKR',
-        customerEmail: user.email || 'customer@mentecart.local',
-        customerPhone: user.phone || '0000000000',
-        customerName: user.name || 'Customer',
+        customerEmail: (user.email as string) || 'customer@mentecart.local',
+        customerPhone: (user.phone as string) || '0000000000',
+        customerName: (user.name as string) || 'Customer',
         notifyUrl,
       };
 
       const paymentDetails = payHereService.initiatePayment(paymentInitReq, returnUrl);
-
-      // DO NOT clear cart yet - only clear after successful payment webhook
-      // await cartRepository.clearCart(userId);
 
       return {
         booking,
@@ -249,30 +250,19 @@ export class BookingService {
 
   /**
    * Confirms booking after successful payment webhook.
-   * Steps:
-   *  1. Find payment record
-   *  2. Update payment status to 'completed'
-   *  3. Confirm booking (pending → confirmed)
-   *  4. Clear the cart
-   * Idempotent: Webhook may be retried, so check if already processed.
    */
   async confirmBookingAfterPayment(paymentId: string): Promise<IBooking> {
     const payment = await paymentRepository.findById(paymentId);
     if (!payment) throw new NotFoundError('Payment not found');
 
-    // Mark webhook as processed (prevent duplicate processing)
     await paymentRepository.markWebhookProcessed(paymentId);
-
-    // Update payment status
     await paymentRepository.updateStatus(paymentId, 'completed');
 
-    // Confirm the booking
     const booking = await bookingRepository.confirmBookingAfterPayment(
       payment.bookingId.toString(),
     );
     if (!booking) throw new NotFoundError('Booking not found');
 
-    // Clear the cart after successful payment
     await cartRepository.clearCart(payment.userId.toString());
 
     logger.info(
@@ -285,28 +275,19 @@ export class BookingService {
 
   /**
    * Handles payment failure.
-   * Steps:
-   *  1. Update payment status to 'failed'
-   *  2. Update booking status to 'failed'
-   *  3. Release reserved slots
    */
   async handlePaymentFailure(paymentId: string, reason?: string): Promise<IBooking> {
     const payment = await paymentRepository.findById(paymentId);
     if (!payment) throw new NotFoundError('Payment not found');
 
-    // Mark webhook as processed
     await paymentRepository.markWebhookProcessed(paymentId);
-
-    // Update payment status
     await paymentRepository.updateStatus(paymentId, 'failed', {
       failureReason: reason,
     });
 
-    // Get the booking
     const booking = await bookingRepository.findById(payment.bookingId.toString());
     if (!booking) throw new NotFoundError('Booking not found');
 
-    // Release all reserved slots
     await Promise.all(
       booking.items.map((item) =>
         serviceRepository.decrementSlotBookedCount(
@@ -318,7 +299,6 @@ export class BookingService {
       ),
     );
 
-    // Update booking status to failed
     const updated = await bookingRepository.updateStatus(booking._id.toString(), 'failed', {
       cancellationReason: `Payment failed: ${reason || 'Unknown reason'}`,
     });

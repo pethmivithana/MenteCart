@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../bookings/presentation/bloc/bookings_bloc.dart';
 import '../../../bookings/presentation/bloc/bookings_event.dart';
 import '../../../bookings/presentation/bloc/bookings_state.dart';
+import '../../../payment/data/models/payment_response_model.dart';
 import '../../presentation/bloc/cart_bloc.dart';
 import '../../presentation/bloc/cart_event.dart';
 import '../../presentation/bloc/cart_state.dart';
@@ -27,44 +28,58 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _launchPayHerePayment(
     BuildContext context,
-    Map<String, dynamic> paymentDetails,
+    Map<String, dynamic> rawDetails,
   ) async {
     try {
-      // Construct PayHere payment URL
-      final baseUrl = paymentDetails['payhere_url'] ??
-          'https://sandbox.payhere.lk/pay/checkout';
-      
-      // Build URL with payment parameters
-      final uri = Uri.parse(baseUrl).replace(
-        queryParameters: {
-          'merchant_id': paymentDetails['merchant_id'],
-          'return_url': paymentDetails['return_url'],
-          'cancel_url': paymentDetails['return_url'],
-          'notify_url': paymentDetails['notify_url'],
-          'order_id': paymentDetails['order_id'],
-          'items': paymentDetails['items'],
-          'amount': paymentDetails['amount'],
-          'currency': paymentDetails['currency'],
-          'first_name': (paymentDetails['customer_name'] ?? '').split(' ').first,
-          'last_name': (paymentDetails['customer_name'] ?? '').contains(' ')
-              ? (paymentDetails['customer_name'] ?? '').split(' ').last
-              : '',
-          'email': paymentDetails['customer_email'],
-          'phone': paymentDetails['customer_phone'],
-          'address': 'N/A',
-          'city': 'N/A',
-          'country': 'LK',
-          'merchant_key': paymentDetails['merchant_key'],
-        },
-      );
+      final model = PaymentDetailsModel.fromJson(rawDetails);
+
+      // PayHere sandbox checkout endpoint
+      const payhereUrl = 'https://sandbox.payhere.lk/pay/checkout';
+
+      final params = <String, String>{
+        'merchant_id': model.merchantId,
+        'return_url': model.returnUrl,
+        'cancel_url': model.cancelUrl.isNotEmpty ? model.cancelUrl : model.returnUrl,
+        'notify_url': model.notifyUrl,
+        'order_id': model.orderId,
+        'items': model.items,
+        'amount': model.amount,
+        'currency': model.currency,
+        'first_name': model.firstName,
+        'last_name': model.lastName,
+        'email': model.email,
+        'phone': model.phone,
+        'address': model.address,
+        'city': model.city,
+        'country': model.country,
+        'merchant_key': model.merchantKey,
+      };
+
+      // Remove empty values
+      params.removeWhere((_, v) => v.isEmpty);
+
+      final uri = Uri.parse(payhereUrl).replace(queryParameters: params);
+
+      debugPrint('Launching PayHere URL: $uri');
 
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open PayHere. Please try again.'),
+            ),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to launch payment: $e')),
-      );
+      debugPrint('PayHere launch error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment launch failed: $e')),
+        );
+      }
     }
   }
 
@@ -76,10 +91,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         listener: (context, bookingState) {
           if (bookingState is CheckoutSuccess) {
             if (bookingState.paymentResponse != null) {
-              // Launch PayHere payment
+              // Launch PayHere payment in browser
               _launchPayHerePayment(context, bookingState.paymentResponse!);
-              
-              // Navigate to payment processing screen
+
+              // Navigate to payment processing screen to poll for status
               context.go(
                 '/payment-processing',
                 extra: {
@@ -88,17 +103,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 },
               );
             } else {
-              // No payment required (unlikely but handle it)
-              context.read<CartBloc>().add(const GetCartEvent());
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Booking confirmed')),
+                const SnackBar(content: Text('Booking placed successfully')),
               );
               context.go('/bookings/${bookingState.booking.id}');
             }
           }
           if (bookingState is BookingsFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(bookingState.message)),
+              SnackBar(
+                content: Text(bookingState.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
@@ -115,6 +131,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      const Icon(Icons.shopping_cart_outlined, size: 64),
+                      const SizedBox(height: 16),
                       const Text('Your cart is empty.'),
                       const SizedBox(height: 16),
                       FilledButton(
@@ -145,20 +163,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         '${DateFormat.yMMMd().format((e.selectedDate ?? DateTime.now()).toLocal())} · ${e.selectedSlot ?? ''} × ${e.quantity}',
                       ),
                       trailing: Text(
-                        '\$${(e.price * e.quantity).toStringAsFixed(2)}',
+                        'LKR ${(e.price * e.quantity).toStringAsFixed(2)}',
                       ),
                     ),
                   ),
                   const Divider(),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                    title: const Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     trailing: Text(
-                      '\$${cart.totalPrice.toStringAsFixed(2)}',
+                      'LKR ${cart.totalPrice.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'You will be redirected to PayHere sandbox to complete payment.',
+                            style: TextStyle(fontSize: 13, color: Colors.blue),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -166,15 +207,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onPressed: busy
                         ? null
                         : () {
-                            context.read<BookingsBloc>().add(const CheckoutEvent());
+                            context
+                                .read<BookingsBloc>()
+                                .add(const CheckoutEvent());
                           },
                     child: busy
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Confirm booking'),
+                        : const Text('Confirm & Pay'),
                   ),
                 ],
               );
