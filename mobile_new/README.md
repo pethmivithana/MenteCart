@@ -1,224 +1,185 @@
-# 🛒 MenteCart – Service Booking Platform
+# MenteCart Flutter Mobile App
 
-MenteCart is a full-stack service booking system where users can browse services, add them to a cart, select time slots, and complete bookings with secure payment handling.
+Production-ready Flutter mobile application for MenteCart mental health services booking platform.
 
-Unlike traditional e-commerce systems, MenteCart focuses on **time-based service reservations**, slot capacity management, and real-world booking constraints.
+## Architecture
 
----
+This project follows **Clean Architecture** with separation of concerns:
 
-## 🚀 Live System Overview
+- **Domain Layer**: Business logic (entities, repositories, use cases)
+- **Data Layer**: API integration and data mapping (models, data sources, repository implementations)
+- **Presentation Layer**: UI components (screens, widgets, BLoCs)
 
-* 🧑 User Authentication (JWT-based)
-* 🛎️ Service browsing with categories & search
-* 🕒 Slot-based booking system with capacity control
-* 🛒 Cart system with expiration handling
-* 💳 Payment integration (PayHere sandbox)
-* 📊 Booking lifecycle management (pending → confirmed → completed / cancelled)
-* 🔐 Audit logging for all booking state transitions
-
----
-
-## 🧱 Tech Stack
-
-### Backend
-
-* Node.js + Express
-* TypeScript
-* MongoDB + Mongoose
-* JWT Authentication
-* Docker + Docker Compose
-
-### Mobile App
-
-* Flutter (latest stable)
-* Dart 3.x
-* BLoC State Management
-* Dio HTTP client
-
-### Infrastructure
-
-* Dockerized backend + MongoDB
-* Environment-based configuration
-
----
-
-## 🏗️ Architecture
+## Project Structure
 
 ```
-Flutter App
-   ↓
-REST API (Node.js + Express)
-   ↓
-MongoDB (Docker container)
+lib/
+├── core/              # Shared infrastructure
+│   ├── api/           # HTTP client with JWT auth
+│   ├── di/            # Dependency injection setup
+│   ├── error/         # Exception handling & failures
+│   ├── router/        # Navigation configuration
+│   ├── theme/         # Design system
+│   ├── validators/    # Input validation
+│   └── usecases/      # Base use case class
+├── features/          # Feature modules
+│   ├── auth/          # Authentication (login, signup, logout)
+│   ├── services/      # Service browsing & filtering
+│   ├── cart/          # Shopping cart management
+│   └── bookings/      # Booking management & history
+└── main.dart          # App entry point
 ```
 
----
+## Getting Started
 
-## ⚙️ Key Features
+### Prerequisites
 
-### 🔐 Authentication
+- Flutter 3.0+
+- Dart 3.0+
+- Backend API running (see backend README)
 
-* Secure signup/login with bcrypt hashing
-* JWT token-based authentication
-* Protected routes
+### Installation
 
----
+1. Navigate to the mobile directory:
+```bash
+cd mobile
+```
 
-### 🛎️ Services Module
+2. Install dependencies:
+```bash
+flutter pub get
+```
 
-* Browse services with pagination
-* Category filtering & search
-* Service details with available slots
+3. Run the app:
+```bash
+# Default (localhost)
+flutter run
 
----
+# With custom API URL
+flutter run --dart-define=API_BASE_URL=http://YOUR_IP:5000/api
 
-### 🕒 Slot Booking System
+# For Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000/api
+```
 
-* Time-slot based reservations
-* Capacity tracking per slot
-* Prevention of overbooking (atomic DB operations)
+## Features Implemented
 
----
+### ✅ Authentication
+- Login with email/password
+- Sign up with validation
+- JWT token persistence in secure storage
+- Auto-login on app restart
+- Automatic logout on 401 responses
+- Auth-guard navigation
 
-### 🛒 Cart System
+### ✅ State Management
+- flutter_bloc for state management
+- Clear event/state separation
+- Global BLoC providers
+- Error handling at bloc level
 
-* Multi-service cart support
-* Slot-based item selection
-* Auto-expiry after 15 minutes
-* Cart cleanup background job
+### ✅ API Integration
+- Dio HTTP client
+- Automatic JWT token injection
+- Centralized error handling
+- Pagination support
+- Request/response logging
 
----
+### ✅ Navigation
+- GoRouter with auth guards
+- Splash screen on startup
+- Deep linking ready
+- Named routes
 
-### 💳 Payment Flow
+### ✅ Data Persistence
+- flutter_secure_storage for JWT tokens
+- Automatic token refresh on app startup
+- Clean logout clearing stored data
 
-* PayHere sandbox integration
-* Webhook-based payment verification
-* Booking confirmed only after backend validation
+## Key Dependencies
 
----
+```yaml
+flutter_bloc: ^8.1.0          # State management
+bloc: ^8.1.0                  # Core bloc library
+dio: ^5.0.0                   # HTTP client
+flutter_secure_storage: ^9.0.0 # Secure storage
+go_router: ^11.0.0            # Navigation
+dartz: ^0.10.0                # Functional programming
+get_it: ^7.5.0                # Dependency injection
+equatable: ^2.0.0             # Value equality
+```
 
-### 📦 Booking System
+## Environment Variables
 
-* Full lifecycle:
-
-  * pending → confirmed → completed
-  * cancelled / failed states
-* Cancellation rules with cutoff validation
-* Booking history per user
-
----
-
-### 📊 Audit Logging
-
-* Every booking state change is logged
-* Tracks:
-
-  * previous status
-  * new status
-  * timestamp
-  * actor
-
----
-
-## 🐳 Docker Setup
-
-### Run Backend + MongoDB
+Set the API base URL using `--dart-define`:
 
 ```bash
-docker compose up --build
+flutter run --dart-define=API_BASE_URL=http://your.api.com/api
 ```
 
-### Services included:
+Default: `http://localhost:5000/api`
 
-* Backend API → `http://localhost:5000`
-* MongoDB → `mongodb://mongo:27017/mentecart`
+## Building for Release
 
----
-
-## 📦 Environment Variables
-
-Create `.env` inside backend:
-
-```
-MONGODB_URI=mongodb://mongo:27017/mentecart
-JWT_SECRET=your_secret
-JWT_EXPIRES_IN=1d
-PORT=5000
-
-PAYHERE_MERCHANT_ID=xxxx
-PAYHERE_SECRET=xxxx
-PAYHERE_API_URL=https://sandbox.payhere.lk/pay/checkout
-```
-
----
-
-## 📱 Flutter Setup
-
-Run app with:
-
+### Android
 ```bash
-flutter run --dart-define=API_URL=http://10.0.2.2:5000
-
+flutter build apk --release --dart-define=API_BASE_URL=https://your.api.com/api
 ```
 
----
-
-## 📁 Project Structure
-
-```
-backend/
-  src/
-    controllers/
-    services/
-    repositories/
-    models/
-    routes/
-
-mobile/
-  lib/
-    presentation/
-    bloc/
-    data/
-    core/
+### iOS
+```bash
+flutter build ios --release --dart-define=API_BASE_URL=https://your.api.com/api
 ```
 
----
+## Testing
 
-## ⚠️ Known Limitations
+Run tests with:
+```bash
+flutter test
+```
 
-* Payment gateway runs only in sandbox mode
-* No admin dashboard implemented
-* Email notifications not integrated
-* Redis caching not included (optional enhancement)
+## Code Style
 
----
+Uses Flutter/Dart conventions:
+- CamelCase for classes
+- camelCase for variables and methods
+- Single quotes for strings
+- 2-space indentation
 
-## 🎯 What Makes This Project Stand Out
+## Troubleshooting
 
-* Real-world booking constraints (slot capacity + expiry)
-* Atomic database operations to prevent overbooking
-* Webhook-based payment verification
-* Clean layered architecture
-* Dockerized backend environment
-* Production-style error handling and audit logging
+### Build issues
+```bash
+# Clean everything
+flutter clean
+flutter pub get
+flutter pub upgrade
+```
 
----
+### API Connection Issues
+- Verify backend is running on correct port
+- Check --dart-define API_BASE_URL is correct
+- For Android emulator use `10.0.2.2` instead of `localhost`
 
-## 🎥 Demo Video
+### State Management Issues
+- Ensure all BLoCs are registered in DI
+- Check that MultiBlocProvider is used correctly
+- Verify event handlers are wired in BLoC constructor
 
-A walkthrough video demonstrating:
+## Next Steps
 
-* User signup/login
-* Browsing services
-* Adding services to cart
-* Slot selection
-* Checkout flow
-* Booking confirmation
-* Cancellation flow
-* Payment simulation (sandbox)
+Complete the UI screens:
 
----
+1. **HomeScreen**: Service grid with filtering and search
+2. **ServiceDetailScreen**: Full service information with add to cart
+3. **CartScreen**: Manage cart items with quantity controls
+4. **CheckoutScreen**: Order confirmation and payment
+5. **BookingHistoryScreen**: List of past bookings
+6. **BookingDetailScreen**: Full booking details with cancel option
 
-## 👨‍💻 Author
+See `FLUTTER_IMPLEMENTATION.md` for detailed architecture documentation.
 
-Built as a full-stack engineering project demonstrating production-level architecture, clean code practices, and real-world system design thinking.
+## License
+
+flutter run --dart-define=API_BASE_URL=http://192.168.56.1:5000/api
+flutter run --dart-define=API_BASE_URL=http://192.168.1.89:5000/api
