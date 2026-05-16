@@ -40,17 +40,23 @@ class Cart extends Equatable {
   final String userId;
   final DateTime? expiresAt;
 
-  const Cart({
-    required this.items,
-    required this.userId,
-    this.expiresAt,
-  });
+  const Cart({required this.items, required this.userId, this.expiresAt});
 
   /// Calculate total price
   double get totalPrice => items.fold(0, (sum, item) => sum + item.subtotal);
 
   /// Count total items
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
+
+  /// Check if cart is expired
+  bool get isExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
+
+  /// Get remaining time until expiry (null if already expired)
+  Duration? get timeUntilExpiry {
+    if (expiresAt == null) return null;
+    final remaining = expiresAt!.difference(DateTime.now());
+    return remaining.isNegative ? null : remaining;
+  }
 
   @override
   List<Object?> get props => [items, userId, expiresAt];

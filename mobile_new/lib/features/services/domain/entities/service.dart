@@ -6,18 +6,35 @@ class ServiceSlot extends Equatable {
   final String time;
   final int capacity;
   final int bookedCount;
+  final String? startTime; // ISO time like 09:00
+  final String? endTime; // ISO time like 10:00
 
   const ServiceSlot({
     required this.date,
     required this.time,
     required this.capacity,
     required this.bookedCount,
+    this.startTime,
+    this.endTime,
   });
 
   int get remaining => (capacity - bookedCount).clamp(0, capacity);
 
+  bool get isFullyBooked => remaining <= 0;
+
+  bool get hasLimitedSlots => remaining > 0 && remaining <= 2;
+
+  bool get isAvailable => remaining > 0;
+
   @override
-  List<Object?> get props => [date, time, capacity, bookedCount];
+  List<Object?> get props => [
+    date,
+    time,
+    capacity,
+    bookedCount,
+    startTime,
+    endTime,
+  ];
 }
 
 /// Service entity - domain layer representation
@@ -54,20 +71,20 @@ class Service extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        category,
-        price,
-        duration,
-        tags,
-        rating,
-        reviewCount,
-        imageUrl,
-        createdAt,
-        capacityPerSlot,
-        availableSlots,
-      ];
+    id,
+    name,
+    description,
+    category,
+    price,
+    duration,
+    tags,
+    rating,
+    reviewCount,
+    imageUrl,
+    createdAt,
+    capacityPerSlot,
+    availableSlots,
+  ];
 }
 
 /// Paginated response for services list

@@ -37,11 +37,36 @@ class ServicesSuccess extends ServicesState {
 
 class ServiceDetailSuccess extends ServicesState {
   final Service service;
+  final ServiceSlot? selectedSlot;
 
-  const ServiceDetailSuccess(this.service);
+  const ServiceDetailSuccess(this.service, {this.selectedSlot});
 
   @override
-  List<Object?> get props => [service];
+  List<Object?> get props => [service, selectedSlot];
+}
+
+/// Slot has been selected - could navigate to add to cart
+class SlotSelectedState extends ServicesState {
+  final String serviceId;
+  final ServiceSlot selectedSlot;
+
+  const SlotSelectedState({
+    required this.serviceId,
+    required this.selectedSlot,
+  });
+
+  @override
+  List<Object?> get props => [serviceId, selectedSlot];
+}
+
+/// Slot selection was invalid (e.g., fully booked)
+class SlotSelectionFailure extends ServicesState {
+  final String message;
+
+  const SlotSelectionFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ServicesFailure extends ServicesState {

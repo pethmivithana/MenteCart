@@ -34,13 +34,12 @@ class BookingItemModel extends Equatable {
     return BookingItemModel(
       id: idToString(json['_id']),
       serviceId: serviceIdStr,
-      serviceName: (json['serviceName'] ?? json['serviceTitle']) as String? ??
-          'Service',
+      serviceName:
+          (json['serviceName'] ?? json['serviceTitle']) as String? ?? 'Service',
       price: subtotal,
       quantity: qty,
       selectedDate: _parseSlotDate(json['selectedDate'] ?? json['slotDate']),
-      selectedSlot:
-          (json['selectedSlot'] ?? json['slotTime']) as String?,
+      selectedSlot: (json['selectedSlot'] ?? json['slotTime']) as String?,
     );
   }
 
@@ -55,14 +54,14 @@ class BookingItemModel extends Equatable {
   }
 
   BookingItem toEntity() => BookingItem(
-        id: id,
-        serviceId: serviceId,
-        serviceName: serviceName,
-        price: price,
-        quantity: quantity,
-        selectedDate: selectedDate,
-        selectedSlot: selectedSlot,
-      );
+    id: id,
+    serviceId: serviceId,
+    serviceName: serviceName,
+    price: price,
+    quantity: quantity,
+    selectedDate: selectedDate,
+    selectedSlot: selectedSlot,
+  );
 
   @override
   List<Object?> get props => [
@@ -88,6 +87,8 @@ class BookingModel extends Equatable {
   final String? paymentId;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? cancellationDeadline;
+  final String? paymentFailureReason;
 
   const BookingModel({
     required this.id,
@@ -100,6 +101,8 @@ class BookingModel extends Equatable {
     required this.createdAt,
     this.paymentId,
     this.completedAt,
+    this.cancellationDeadline,
+    this.paymentFailureReason,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -109,18 +112,22 @@ class BookingModel extends Equatable {
       bookingRef: json['bookingRef'] as String? ?? '',
       userId: idToString(json['userId']),
       items: List<BookingItemModel>.from(
-        ((json['items'] as List<dynamic>?) ?? const [])
-            .map((x) => BookingItemModel.fromJson(x as Map<String, dynamic>)),
+        ((json['items'] as List<dynamic>?) ?? const []).map(
+          (x) => BookingItemModel.fromJson(x as Map<String, dynamic>),
+        ),
       ),
       totalAmount: asDouble(json['totalAmount']) ?? 0,
       status: json['status'] as String? ?? 'pending',
       paymentStatus: json['paymentStatus'] as String? ?? 'pending',
       paymentId: json['paymentId'] as String?,
-      createdAt: _parseDateTime(json['createdAt']) ??
+      createdAt:
+          _parseDateTime(json['createdAt']) ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       completedAt: completedRaw != null
           ? DateTime.tryParse(completedRaw.toString())
           : null,
+      cancellationDeadline: _parseDateTime(json['cancellationDeadline']),
+      paymentFailureReason: json['paymentFailureReason'] as String?,
     );
   }
 
@@ -141,17 +148,19 @@ class BookingModel extends Equatable {
   }
 
   Booking toEntity() => Booking(
-        id: id,
-        bookingRef: bookingRef,
-        userId: userId,
-        items: items.map((m) => m.toEntity()).toList(),
-        totalAmount: totalAmount,
-        status: _parseStatus(status),
-        paymentStatus: _parsePaymentStatus(paymentStatus),
-        paymentId: paymentId,
-        createdAt: createdAt,
-        completedAt: completedAt,
-      );
+    id: id,
+    bookingRef: bookingRef,
+    userId: userId,
+    items: items.map((m) => m.toEntity()).toList(),
+    totalAmount: totalAmount,
+    status: _parseStatus(status),
+    paymentStatus: _parsePaymentStatus(paymentStatus),
+    paymentId: paymentId,
+    createdAt: createdAt,
+    completedAt: completedAt,
+    cancellationDeadline: cancellationDeadline,
+    paymentFailureReason: paymentFailureReason,
+  );
 
   static BookingStatus _parseStatus(String status) {
     return BookingStatus.values.firstWhere(
@@ -179,6 +188,8 @@ class BookingModel extends Equatable {
     paymentId,
     createdAt,
     completedAt,
+    cancellationDeadline,
+    paymentFailureReason,
   ];
 }
 
@@ -214,12 +225,12 @@ class BookingListResponseModel extends Equatable {
   }
 
   BookingListResponse toEntity() => BookingListResponse(
-        bookings: data.map((m) => m.toEntity()).toList(),
-        total: total,
-        page: page,
-        limit: limit,
-        totalPages: totalPages,
-      );
+    bookings: data.map((m) => m.toEntity()).toList(),
+    total: total,
+    page: page,
+    limit: limit,
+    totalPages: totalPages,
+  );
 
   @override
   List<Object?> get props => [data, total, page, limit, totalPages];

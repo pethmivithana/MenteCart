@@ -33,7 +33,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ) async {
     try {
       final model = PaymentDetailsModel.fromJson(rawDetails);
-      
+
       // Navigate to PayHere gateway screen for card entry
       context.push(
         '/payhere-gateway',
@@ -49,9 +49,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       debugPrint('PayHere setup error: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment setup failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Payment setup failed: $e')));
       }
     }
   }
@@ -66,7 +66,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             if (bookingState.paymentResponse != null) {
               final cartState = context.read<CartBloc>().state;
               final cart = cartState is CartSuccess ? cartState.cart : null;
-              
+
               // Launch PayHere gateway screen for card entry
               await _launchPayHerePayment(
                 context,
@@ -81,9 +81,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
           }
           if (bookingState is BookingsFailure) {
+            final errorMessage = _getErrorMessage(bookingState.message);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(bookingState.message),
+                content: Text(errorMessage),
                 backgroundColor: Colors.red,
               ),
             );
@@ -96,6 +97,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               if (cartState is CartLoading || cartState is CartInitial) {
                 return const Center(child: CircularProgressIndicator());
               }
+
+              // Handle cart expiry
+              if (cartState is CartExpired) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.schedule,
+                        size: 80,
+                        color: Color(0xFFEF4444),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Cart Expired',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Your cart session expired. Please add items again.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: () => context.go('/home'),
+                        child: const Text('Browse services'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
               if (cartState is CartEmpty ||
                   (cartState is CartSuccess && cartState.cart.items.isEmpty)) {
                 return Center(
@@ -114,83 +147,120 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 );
               }
+
+              if (cartState is CartFailure) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(cartState.message),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () =>
+                            context.read<CartBloc>().add(const GetCartEvent()),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
               if (cartState is! CartSuccess) {
                 return const SizedBox.shrink();
               }
+
               final cart = cartState.cart;
-              return ListView(
-                padding: const EdgeInsets.all(20),
+              return Stack(
                 children: [
-                  Text(
-                    'Order summary',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  ...cart.items.map(
-                    (e) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(e.serviceName),
-                      subtitle: Text(
-                        '${DateFormat.yMMMd().format((e.selectedDate ?? DateTime.now()).toLocal())} · ${e.selectedSlot ?? ''} × ${e.quantity}',
+                  ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      Text(
+                        'Order summary',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      trailing: Text(
-                        'LKR ${(e.price * e.quantity).toStringAsFixed(2)}',
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'Total',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    trailing: Text(
-                      'LKR ${cart.totalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'You will be redirected to PayHere sandbox to complete payment.',
-                            style: TextStyle(fontSize: 13, color: Colors.blue),
+                      const SizedBox(height: 12),
+                      ...cart.items.map(
+                        (e) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(e.serviceName),
+                          subtitle: Text(
+                            '${DateFormat.yMMMd().format((e.selectedDate ?? DateTime.now()).toLocal())} · ${e.selectedSlot ?? ''} × ${e.quantity}',
+                          ),
+                          trailing: Text(
+                            'LKR ${(e.price * e.quantity).toStringAsFixed(2)}',
                           ),
                         ),
-                      ],
+                      ),
+                      const Divider(),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text(
+                          'Total',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        trailing: Text(
+                          'LKR ${cart.totalPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'You will be redirected to PayHere sandbox to complete payment.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: busy
+                            ? null
+                            : () {
+                                context.read<BookingsBloc>().add(
+                                  const CheckoutEvent(),
+                                );
+                              },
+                        child: busy
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Confirm & Pay'),
+                      ),
+                    ],
+                  ),
+                  // Loading overlay
+                  if (busy)
+                    Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: const Center(child: CircularProgressIndicator()),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: busy
-                        ? null
-                        : () {
-                            context
-                                .read<BookingsBloc>()
-                                .add(const CheckoutEvent());
-                          },
-                    child: busy
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Confirm & Pay'),
-                  ),
                 ],
               );
             },
@@ -198,5 +268,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       ),
     );
+  }
+
+  String _getErrorMessage(String message) {
+    if (message.toLowerCase().contains('daily')) {
+      return '⚠️ You have reached your daily booking limit';
+    }
+    if (message.toLowerCase().contains('fully booked')) {
+      return '⚠️ Selected slot is fully booked';
+    }
+    if (message.toLowerCase().contains('expired')) {
+      return '⚠️ Your cart session expired';
+    }
+    return '⚠️ ${message}';
   }
 }

@@ -18,11 +18,17 @@ class CartLoading extends CartState {
 
 class CartSuccess extends CartState {
   final Cart cart;
+  final Duration? timeRemaining; // Time until cart expires
 
-  const CartSuccess(this.cart);
+  const CartSuccess(this.cart, {this.timeRemaining});
 
   @override
-  List<Object?> get props => [cart];
+  List<Object?> get props => [cart, timeRemaining];
+}
+
+/// Cart has expired - user needs to refresh
+class CartExpired extends CartState {
+  const CartExpired();
 }
 
 class CartFailure extends CartState {

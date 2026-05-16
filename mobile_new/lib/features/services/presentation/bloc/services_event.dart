@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/service.dart';
 
 abstract class ServicesEvent extends Equatable {
   const ServicesEvent();
@@ -31,4 +32,20 @@ class GetServiceByIdEvent extends ServicesEvent {
 
   @override
   List<Object?> get props => [id];
+}
+
+/// Select a slot for the service
+class SelectSlotEvent extends ServicesEvent {
+  final String serviceId;
+  final ServiceSlot slot;
+
+  const SelectSlotEvent({required this.serviceId, required this.slot});
+
+  @override
+  List<Object?> get props => [serviceId, slot];
+}
+
+/// Clear slot selection
+class ClearSlotSelectionEvent extends ServicesEvent {
+  const ClearSlotSelectionEvent();
 }

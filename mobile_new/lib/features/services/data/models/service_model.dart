@@ -46,7 +46,8 @@ class ServiceModel extends Equatable {
     if (createdRaw is String) {
       createdAt = DateTime.parse(createdRaw);
     } else if (createdRaw is Map<String, dynamic>) {
-      createdAt = DateTime.tryParse(createdRaw[r'$date']?.toString() ?? '') ??
+      createdAt =
+          DateTime.tryParse(createdRaw[r'$date']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     } else {
       createdAt = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -65,6 +66,8 @@ class ServiceModel extends Equatable {
             time: e['time'] as String? ?? '',
             capacity: asInt(e['capacity'], 1),
             bookedCount: asInt(e['bookedCount'], 0),
+            startTime: e['startTime'] as String?,
+            endTime: e['endTime'] as String?,
           ),
         );
       }
@@ -89,37 +92,37 @@ class ServiceModel extends Equatable {
 
   /// Convert model to entity
   Service.Service toEntity() => Service.Service(
-        id: id,
-        name: name,
-        description: description,
-        category: category,
-        price: price,
-        duration: duration,
-        tags: tags,
-        rating: rating,
-        reviewCount: reviewCount,
-        imageUrl: imageUrl,
-        createdAt: createdAt,
-        capacityPerSlot: capacityPerSlot,
-        availableSlots: availableSlots,
-      );
+    id: id,
+    name: name,
+    description: description,
+    category: category,
+    price: price,
+    duration: duration,
+    tags: tags,
+    rating: rating,
+    reviewCount: reviewCount,
+    imageUrl: imageUrl,
+    createdAt: createdAt,
+    capacityPerSlot: capacityPerSlot,
+    availableSlots: availableSlots,
+  );
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        category,
-        price,
-        duration,
-        tags,
-        rating,
-        reviewCount,
-        imageUrl,
-        createdAt,
-        capacityPerSlot,
-        availableSlots,
-      ];
+    id,
+    name,
+    description,
+    category,
+    price,
+    duration,
+    tags,
+    rating,
+    reviewCount,
+    imageUrl,
+    createdAt,
+    capacityPerSlot,
+    availableSlots,
+  ];
 }
 
 /// ServiceListResponseModel

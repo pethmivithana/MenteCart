@@ -38,23 +38,21 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     const returnUrl = 'mentecart://payment-result';
     const notifyUrl = '$_backendBaseUrl/api/bookings/webhook/payhere';
 
-    final result = await checkoutUseCase(CheckoutParams(
-      returnUrl: returnUrl,
-      notifyUrl: notifyUrl,
-    ));
+    final result = await checkoutUseCase(
+      CheckoutParams(returnUrl: returnUrl, notifyUrl: notifyUrl),
+    );
 
     result.fold(
       (failure) => emit(
-        BookingsFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
+        BookingsFailure(message: failure.message, errorCode: failure.errorCode),
       ),
       (checkoutResponse) {
-        emit(CheckoutSuccess(
-          checkoutResponse.booking,
-          paymentResponse: checkoutResponse.paymentDetails,
-        ));
+        emit(
+          CheckoutSuccess(
+            checkoutResponse.booking,
+            paymentResponse: checkoutResponse.paymentDetails,
+          ),
+        );
       },
     );
   }
@@ -73,10 +71,7 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     );
     result.fold(
       (failure) => emit(
-        BookingsFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
+        BookingsFailure(message: failure.message, errorCode: failure.errorCode),
       ),
       (response) => emit(
         BookingsSuccess(
@@ -98,10 +93,7 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     final result = await getBookingByIdUseCase(event.id);
     result.fold(
       (failure) => emit(
-        BookingsFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
+        BookingsFailure(message: failure.message, errorCode: failure.errorCode),
       ),
       (booking) => emit(BookingDetailSuccess(booking)),
     );
@@ -111,17 +103,13 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     CancelBookingEvent event,
     Emitter<BookingsState> emit,
   ) async {
-    emit(const BookingsLoading());
+    emit(const CancellationLoading());
     final result = await cancelBookingUseCase(event.id);
     result.fold(
       (failure) => emit(
-        BookingsFailure(
-          message: failure.message,
-          errorCode: failure.errorCode,
-        ),
+        BookingsFailure(message: failure.message, errorCode: failure.errorCode),
       ),
-      (booking) => emit(BookingDetailSuccess(booking)),
+      (booking) => emit(CancellationSuccess(booking)),
     );
   }
 }
-

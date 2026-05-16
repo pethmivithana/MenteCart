@@ -54,6 +54,21 @@ class CheckoutSuccess extends BookingsState {
   List<Object?> get props => [booking, paymentResponse];
 }
 
+/// Booking is being cancelled
+class CancellationLoading extends BookingsState {
+  const CancellationLoading();
+}
+
+/// Booking was successfully cancelled
+class CancellationSuccess extends BookingsState {
+  final Booking cancelledBooking;
+
+  const CancellationSuccess(this.cancelledBooking);
+
+  @override
+  List<Object?> get props => [cancelledBooking];
+}
+
 class BookingsFailure extends BookingsState {
   final String message;
   final String? errorCode;

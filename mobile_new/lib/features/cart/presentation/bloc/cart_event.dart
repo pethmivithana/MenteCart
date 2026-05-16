@@ -64,3 +64,23 @@ class RemoveCartItemEvent extends CartEvent {
   @override
   List<Object?> get props => [itemId];
 }
+
+/// Start watching cart expiry timer
+class StartCartTimerEvent extends CartEvent {
+  const StartCartTimerEvent();
+}
+
+/// Stop watching cart expiry timer
+class StopCartTimerEvent extends CartEvent {
+  const StopCartTimerEvent();
+}
+
+/// Update cart expiry time (called every second)
+class CartTimerTickEvent extends CartEvent {
+  final Duration remaining;
+
+  const CartTimerTickEvent(this.remaining);
+
+  @override
+  List<Object?> get props => [remaining];
+}

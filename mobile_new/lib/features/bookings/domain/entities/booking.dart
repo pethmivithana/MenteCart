@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Booking status enum
-enum BookingStatus { pending, confirmed, completed, cancelled }
+enum BookingStatus { pending, confirmed, completed, cancelled, failed }
 
 /// Payment status enum
 enum PaymentStatus { pending, completed, failed, cancelled }
@@ -50,6 +50,8 @@ class Booking extends Equatable {
   final String? paymentId;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? cancellationDeadline;
+  final String? paymentFailureReason;
 
   const Booking({
     required this.id,
@@ -62,7 +64,22 @@ class Booking extends Equatable {
     required this.createdAt,
     this.paymentId,
     this.completedAt,
+    this.cancellationDeadline,
+    this.paymentFailureReason,
   });
+
+  bool get canBeCancelled {
+    if (status == BookingStatus.completed ||
+        status == BookingStatus.cancelled ||
+        status == BookingStatus.failed) {
+      return false;
+    }
+    if (cancellationDeadline != null &&
+        DateTime.now().isAfter(cancellationDeadline!)) {
+      return false;
+    }
+    return true;
+  }
 
   @override
   List<Object?> get props => [
@@ -76,6 +93,8 @@ class Booking extends Equatable {
     paymentId,
     createdAt,
     completedAt,
+    cancellationDeadline,
+    paymentFailureReason,
   ];
 }
 
