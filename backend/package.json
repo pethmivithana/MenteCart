@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "seed": "ts-node src/seeds/service.seed.ts"
+    "seed": "ts-node seed_data.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

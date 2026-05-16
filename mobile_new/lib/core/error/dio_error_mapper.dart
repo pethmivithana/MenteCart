@@ -84,7 +84,7 @@ class DioErrorMapper {
 
     // Check for daily limit
     if (message?.toLowerCase().contains('daily booking limit') ??
-        false || message?.toLowerCase().contains('daily limit') ??
+        false || message!.toLowerCase().contains('daily limit') ??
         false) {
       return DailyLimitFailure(
         message: message ?? 'You have reached your daily booking limit',

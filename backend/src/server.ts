@@ -7,6 +7,7 @@ import { seedDemoServicesIfEmpty } from './bootstrap/seedDemoServices';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import { logger } from './utils/logger';
+import { startCartExpiryScheduler } from './bootstrap/cartExpiryScheduler';
 
 /**
  * Application entry point.

@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://pethmi9:pethmi09@cluster0.furwrbi.mongodb.net/MenteCart';
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  'mongodb+srv://pethmi9:pethmi09@cluster0.furwrbi.mongodb.net/MenteCart';
 
 const serviceSchema = new mongoose.Schema({
   title: String,
@@ -17,9 +19,11 @@ const serviceSchema = new mongoose.Schema({
   availableSlots: [
     {
       date: String,
+      startTime: String,
       time: String,
       capacity: Number,
       bookedCount: Number,
+      remainingCapacity: Number,
     },
   ],
   createdAt: Date,
@@ -28,20 +32,46 @@ const serviceSchema = new mongoose.Schema({
 
 const Service = mongoose.model('Service', serviceSchema);
 
-// Generate dates starting from tomorrow
+// ✅ Generate dates starting from May 20, 2026
 const generateDates = () => {
   const dates = [];
-  const start = new Date();
-  start.setDate(start.getDate() + 1);
-  for (let i = 0; i < 5; i++) {
+  const start = new Date('2026-05-20');
+
+  for (let i = 0; i < 10; i++) {
     const d = new Date(start);
-    d.setDate(d.getDate() + i);
+    d.setDate(start.getDate() + i);
     dates.push(d.toISOString().split('T')[0]);
   }
+
   return dates;
 };
 
 const upcomingDates = generateDates();
+
+// ✅ Common time slots (morning, noon, evening)
+const timeSlots = ['08:00', '09:30', '11:00', '14:00', '16:00', '18:00'];
+
+const createSlots = (dates, capacity) => {
+  const slots = [];
+
+  dates.forEach((date, i) => {
+    timeSlots.forEach((time, j) => {
+      // spread slots across days (not too repetitive)
+      if ((i + j) % 2 === 0) {
+        slots.push({
+          date,
+          time,
+          startTime: time,
+          capacity,
+          bookedCount: 0,
+          remainingCapacity: capacity,
+        });
+      }
+    });
+  });
+
+  return slots.slice(0, 10); // limit per service for balance
+};
 
 const seedData = [
   {
@@ -55,13 +85,7 @@ const seedData = [
     rating: 4.5,
     reviewCount: 23,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '09:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[0], time: '14:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[1], time: '10:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[1], time: '15:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[2], time: '09:00', capacity: 5, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 5),
   },
   {
     title: 'House Cleaning Service',
@@ -74,13 +98,7 @@ const seedData = [
     rating: 4.8,
     reviewCount: 45,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '08:00', capacity: 8, bookedCount: 0 },
-      { date: upcomingDates[0], time: '13:00', capacity: 8, bookedCount: 0 },
-      { date: upcomingDates[1], time: '09:00', capacity: 8, bookedCount: 0 },
-      { date: upcomingDates[2], time: '10:00', capacity: 8, bookedCount: 0 },
-      { date: upcomingDates[3], time: '08:00', capacity: 8, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 8),
   },
   {
     title: 'Plumbing Repairs',
@@ -93,13 +111,7 @@ const seedData = [
     rating: 4.6,
     reviewCount: 32,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '10:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[0], time: '16:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[1], time: '11:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[2], time: '08:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[3], time: '14:00', capacity: 4, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 4),
   },
   {
     title: 'Electrical Wiring Installation',
@@ -112,13 +124,7 @@ const seedData = [
     rating: 4.7,
     reviewCount: 28,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '11:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[1], time: '13:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[2], time: '11:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[3], time: '09:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[4], time: '10:00', capacity: 3, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 3),
   },
   {
     title: 'Personal Fitness Coaching',
@@ -131,13 +137,7 @@ const seedData = [
     rating: 4.9,
     reviewCount: 67,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '07:00', capacity: 6, bookedCount: 0 },
-      { date: upcomingDates[0], time: '18:00', capacity: 6, bookedCount: 0 },
-      { date: upcomingDates[1], time: '06:30', capacity: 6, bookedCount: 0 },
-      { date: upcomingDates[2], time: '07:00', capacity: 6, bookedCount: 0 },
-      { date: upcomingDates[3], time: '18:00', capacity: 6, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 6),
   },
   {
     title: 'Language Tutoring',
@@ -150,13 +150,7 @@ const seedData = [
     rating: 4.4,
     reviewCount: 56,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '15:00', capacity: 10, bookedCount: 0 },
-      { date: upcomingDates[0], time: '18:00', capacity: 10, bookedCount: 0 },
-      { date: upcomingDates[1], time: '14:00', capacity: 10, bookedCount: 0 },
-      { date: upcomingDates[2], time: '16:00', capacity: 10, bookedCount: 0 },
-      { date: upcomingDates[3], time: '15:00', capacity: 10, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 10),
   },
   {
     title: 'Beauty Makeup Session',
@@ -169,13 +163,7 @@ const seedData = [
     rating: 4.7,
     reviewCount: 38,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '12:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[1], time: '12:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[2], time: '13:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[3], time: '12:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[4], time: '11:00', capacity: 5, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 5),
   },
   {
     title: 'Appliance Repair Service',
@@ -188,13 +176,7 @@ const seedData = [
     rating: 4.5,
     reviewCount: 41,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '09:30', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[1], time: '08:30', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[2], time: '14:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[3], time: '10:00', capacity: 4, bookedCount: 0 },
-      { date: upcomingDates[4], time: '13:00', capacity: 4, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 4),
   },
   {
     title: 'Web Development Consultation',
@@ -207,13 +189,7 @@ const seedData = [
     rating: 4.8,
     reviewCount: 25,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '14:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[1], time: '15:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[2], time: '15:30', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[3], time: '16:00', capacity: 5, bookedCount: 0 },
-      { date: upcomingDates[4], time: '14:00', capacity: 5, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 5),
   },
   {
     title: 'Car Maintenance Service',
@@ -226,27 +202,16 @@ const seedData = [
     rating: 4.6,
     reviewCount: 51,
     isActive: true,
-    availableSlots: [
-      { date: upcomingDates[0], time: '08:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[1], time: '09:00', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[2], time: '08:30', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[3], time: '07:30', capacity: 3, bookedCount: 0 },
-      { date: upcomingDates[4], time: '09:00', capacity: 3, bookedCount: 0 },
-    ],
+    availableSlots: createSlots(upcomingDates, 3),
   },
 ];
 
-// Normalize slots: support legacy `time` field and set remainingCapacity
+// normalize slots
 for (const svc of seedData) {
-  if (Array.isArray(svc.availableSlots)) {
-    svc.availableSlots = svc.availableSlots.map((slot) => {
-      if (slot.time && !slot.startTime) slot.startTime = slot.time;
-      if (slot.capacity !== undefined && slot.remainingCapacity === undefined) {
-        slot.remainingCapacity = slot.capacity;
-      }
-      return slot;
-    });
-  }
+  svc.availableSlots = svc.availableSlots.map((slot) => {
+    if (slot.time && !slot.startTime) slot.startTime = slot.time;
+    return slot;
+  });
 }
 
 async function seedDatabase() {
@@ -254,16 +219,14 @@ async function seedDatabase() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Clear existing services
     await Service.deleteMany({});
     console.log('Cleared existing services');
 
-    // Insert seed data
     const inserted = await Service.insertMany(seedData);
     console.log(`Inserted ${inserted.length} services`);
 
-    inserted.forEach((service) => {
-      console.log(`✓ ${service.title} - LKR ${service.price}`);
+    inserted.forEach((s) => {
+      console.log(`✓ ${s.title} - LKR ${s.price}`);
     });
 
     await mongoose.disconnect();
