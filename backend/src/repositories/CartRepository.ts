@@ -1,6 +1,6 @@
-import { Cart, ICart } from '../models/Cart';
 import mongoose from 'mongoose';
 import { env } from '../config/env';
+import { Cart, ICart } from '../models/Cart';
 
 /**
  * Data access layer for Cart collection.
@@ -17,7 +17,7 @@ export class CartRepository {
 
   async upsertCart(userId: string): Promise<ICart> {
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + env.CART_EXPIRY_HOURS);
+    expiresAt.setMinutes(expiresAt.getMinutes() + env.CART_EXPIRY_MINUTES);
 
     return Cart.findOneAndUpdate(
       { userId },
@@ -39,7 +39,7 @@ export class CartRepository {
     },
   ): Promise<ICart | null> {
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + env.CART_EXPIRY_HOURS);
+    expiresAt.setMinutes(expiresAt.getMinutes() + env.CART_EXPIRY_MINUTES);
 
     return Cart.findOneAndUpdate(
       { userId },

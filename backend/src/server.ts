@@ -22,6 +22,9 @@ const startServer = async (): Promise<void> => {
 
     const app = createApp();
 
+    // Start background jobs
+    startCartExpiryScheduler();
+
     const server = app.listen(env.PORT, "0.0.0.0", () => {
       logger.info(`🚀 MenteCart API running on http://localhost:${env.PORT}`);
       logger.info(`   Environment : ${env.NODE_ENV}`);

@@ -236,6 +236,19 @@ const seedData = [
   },
 ];
 
+// Normalize slots: support legacy `time` field and set remainingCapacity
+for (const svc of seedData) {
+  if (Array.isArray(svc.availableSlots)) {
+    svc.availableSlots = svc.availableSlots.map((slot) => {
+      if (slot.time && !slot.startTime) slot.startTime = slot.time;
+      if (slot.capacity !== undefined && slot.remainingCapacity === undefined) {
+        slot.remainingCapacity = slot.capacity;
+      }
+      return slot;
+    });
+  }
+}
+
 async function seedDatabase() {
   try {
     await mongoose.connect(MONGODB_URI);

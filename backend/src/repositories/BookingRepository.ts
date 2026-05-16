@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Booking, BookingStatus, IBooking, PaymentStatus } from '../models/Booking';
+import { ConflictError } from '../utils/ApiError';
 
 export interface BookingFilters {
   userId: string;
@@ -54,12 +55,43 @@ export class BookingRepository {
     id: string,
     status: BookingStatus,
     extras?: { cancelledAt?: Date; cancellationReason?: string },
+    changedBy?: string,
   ): Promise<IBooking | null> {
-    return Booking.findByIdAndUpdate(
+    // Validate allowed transitions
+    const allowed: Record<string, string[]> = {
+      pending: ['confirmed', 'failed', 'cancelled'],
+      confirmed: ['completed', 'cancelled'],
+      failed: [],
+      cancelled: [],
+      completed: [],
+    };
+
+    const booking = await Booking.findById(id).exec();
+    if (!booking) return null;
+    const prev = booking.status;
+    if (prev === status) return booking;
+    const allowedNext = allowed[prev] || [];
+    if (!allowedNext.includes(status)) {
+      throw new ConflictError(`Invalid status transition from ${prev} to ${status}`, 'INVALID_STATUS_TRANSITION');
+    }
+
+    const updated = await Booking.findByIdAndUpdate(
       id,
       { $set: { status, ...extras } },
       { new: true },
     ).exec();
+
+    // Write audit log via helper (non-fatal)
+    try {
+      const { logBookingStatusChange } = await import('../utils/logBookingStatusChange');
+      await logBookingStatusChange(booking._id.toString(), prev, status, changedBy, extras?.cancellationReason);
+    } catch (err) {
+      // Non-fatal - continue
+      // eslint-disable-next-line no-console
+      console.warn('Failed to invoke audit log helper', err);
+    }
+
+    return updated;
   }
 
   async updatePaymentStatus(
@@ -72,12 +104,12 @@ export class BookingRepository {
     return Booking.findByIdAndUpdate(id, { $set: updates }, { new: true }).exec();
   }
 
-  async confirmBookingAfterPayment(id: string): Promise<IBooking | null> {
-    return Booking.findByIdAndUpdate(
-      id,
-      { $set: { status: 'confirmed', paymentStatus: 'completed' } },
-      { new: true },
-    ).exec();
+  async confirmBookingAfterPayment(id: string, changedBy?: string): Promise<IBooking | null> {
+    // Reuse updateStatus to ensure transitions and audit logging
+    const updated = await this.updateStatus(id, 'confirmed', undefined, changedBy);
+    if (!updated) return null;
+    // Also mark paymentStatus
+    return Booking.findByIdAndUpdate(id, { $set: { paymentStatus: 'completed' } }, { new: true }).exec();
   }
 
   /**

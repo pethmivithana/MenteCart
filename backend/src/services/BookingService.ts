@@ -63,10 +63,7 @@ export class BookingService {
     const today = new Date().toISOString().split('T')[0];
     const todayCount = await bookingRepository.countBookingsOnDate(userId, today);
     if (todayCount >= env.MAX_BOOKINGS_PER_DAY) {
-      throw new ConflictError(
-        `You have reached the maximum of ${env.MAX_BOOKINGS_PER_DAY} bookings for today`,
-        'BOOKING_LIMIT_REACHED',
-      );
+      throw new ConflictError('Daily booking limit reached', 'BOOKING_LIMIT_REACHED');
     }
 
     // Build booking items and reserve slots atomically
@@ -123,9 +120,9 @@ export class BookingService {
           );
         }
 
-        // Verify the slot still has capacity
+        // Verify the slot still exists and has remaining capacity
         const slot = service.availableSlots.find(
-          (s) => s.date === item.slotDate && s.time === item.slotTime,
+          (s: any) => s.date === item.slotDate && (s.startTime === item.slotTime || s.time === item.slotTime),
         );
         if (!slot) {
           throw new BadRequestError(
@@ -134,15 +131,18 @@ export class BookingService {
           );
         }
 
-        const remaining = slot.capacity - slot.bookedCount;
+        const remaining = (slot.remainingCapacity !== undefined)
+          ? slot.remainingCapacity
+          : (slot.capacity - (slot.bookedCount || 0));
+
         if (item.quantity > remaining) {
           throw new ConflictError(
-            `Only ${remaining} spot(s) left for "${service.title}" on ${item.slotDate} at ${item.slotTime}`,
+            `Selected slot is fully booked`,
             'SLOT_CAPACITY_EXCEEDED',
           );
         }
 
-        // Atomically reserve the slot
+        // Atomically reserve the slot (decrement remainingCapacity)
         const updated = await serviceRepository.incrementSlotBookedCount(
           serviceIdStr,
           item.slotDate,
@@ -152,7 +152,7 @@ export class BookingService {
 
         if (!updated) {
           throw new ConflictError(
-            `Failed to reserve slot for "${service.title}" — it may have just filled up`,
+            `Selected slot is fully booked`,
             'SLOT_RESERVATION_FAILED',
           );
         }
@@ -191,6 +191,22 @@ export class BookingService {
         status: 'pending',
         paymentStatus: 'pending',
       });
+
+      // Audit log: booking created
+      try {
+        const { BookingAuditLog } = await import('../models/BookingAuditLog');
+        await BookingAuditLog.create({
+          bookingId: booking._id,
+          previousStatus: 'none',
+          newStatus: 'pending',
+          changedBy: userId,
+          reason: 'Booking created - awaiting payment',
+        });
+      } catch (err) {
+        // Non-fatal - continue
+        // eslint-disable-next-line no-console
+        console.warn('Failed to write booking created audit log', err);
+      }
 
       // Create payment record
       const payment = await paymentRepository.create({
@@ -303,6 +319,20 @@ export class BookingService {
       throw new ForbiddenError(`Cannot cancel a booking that is "${booking.status}"`);
     }
 
+    // Optional cutoff: prevent cancellation within configured hours of slot start
+    const cutoffHours = env.CANCELLATION_CUTOFF_HOURS || 2;
+    const now = new Date();
+    for (const item of booking.items) {
+      const slotDateTime = new Date(`${item.slotDate}T${item.slotTime}:00`);
+      const diffMs = slotDateTime.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffHours <= cutoffHours) {
+        throw new ForbiddenError(
+          `Cannot cancel booking within ${cutoffHours} hour(s) of slot start`,
+        );
+      }
+    }
+
     // Release slot capacity back
     await Promise.all(
       booking.items.map((item) =>
@@ -315,26 +345,34 @@ export class BookingService {
       ),
     );
 
-    const updated = await bookingRepository.updateStatus(bookingId, 'cancelled', {
-      cancelledAt: new Date(),
-      cancellationReason: reason ?? 'Cancelled by user',
-    });
+    const updated = await bookingRepository.updateStatus(
+      bookingId,
+      'cancelled',
+      {
+        cancelledAt: new Date(),
+        cancellationReason: reason ?? 'Cancelled by user',
+      },
+      userId,
+    );
 
     return updated!;
   }
 
   /**
    * Confirms booking after successful payment webhook.
+   * Defensive: validates payment state before marking booking confirmed.
    */
   async confirmBookingAfterPayment(paymentId: string): Promise<IBooking> {
     const payment = await paymentRepository.findById(paymentId);
     if (!payment) throw new NotFoundError('Payment not found');
+    if (!payment.bookingId) throw new BadRequestError('Payment has no associated booking', 'INVALID_PAYMENT');
 
     await paymentRepository.markWebhookProcessed(paymentId);
     await paymentRepository.updateStatus(paymentId, 'completed');
 
     const booking = await bookingRepository.confirmBookingAfterPayment(
       payment.bookingId.toString(),
+      'system',
     );
     if (!booking) throw new NotFoundError('Booking not found');
 
@@ -349,11 +387,13 @@ export class BookingService {
   }
 
   /**
-   * Handles payment failure.
+   * Handles payment failure — releases reserved capacity and marks booking failed.
+   * Defensive: validates booking state before releasing.
    */
   async handlePaymentFailure(paymentId: string, reason?: string): Promise<IBooking> {
     const payment = await paymentRepository.findById(paymentId);
     if (!payment) throw new NotFoundError('Payment not found');
+    if (!payment.bookingId) throw new BadRequestError('Payment has no associated booking', 'INVALID_PAYMENT');
 
     await paymentRepository.markWebhookProcessed(paymentId);
     await paymentRepository.updateStatus(paymentId, 'failed', {
@@ -363,20 +403,23 @@ export class BookingService {
     const booking = await bookingRepository.findById(payment.bookingId.toString());
     if (!booking) throw new NotFoundError('Booking not found');
 
-    await Promise.all(
-      booking.items.map((item) =>
-        serviceRepository.decrementSlotBookedCount(
-          item.serviceId.toString(),
-          item.slotDate,
-          item.slotTime,
-          item.quantity,
+    // Only release if booking hasn't already been cancelled/failed
+    if (!['cancelled', 'failed'].includes(booking.status) && booking.items && booking.items.length > 0) {
+      await Promise.all(
+        booking.items.map((item) =>
+          serviceRepository.decrementSlotBookedCount(
+            item.serviceId.toString(),
+            item.slotDate,
+            item.slotTime,
+            item.quantity,
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     const updated = await bookingRepository.updateStatus(booking._id.toString(), 'failed', {
       cancellationReason: `Payment failed: ${reason || 'Unknown reason'}`,
-    });
+    }, 'system');
 
     logger.warn(
       { bookingId: booking._id, reason },

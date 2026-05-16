@@ -73,8 +73,8 @@ export class ServiceRepository {
   }
 
   /**
-   * Atomically increment the bookedCount on a specific slot.
-   * Returns the updated service only if the slot has available capacity.
+   * Atomically reserve capacity by decrementing remainingCapacity on a specific slot.
+   * Returns the updated service only if the slot has sufficient remainingCapacity.
    */
   async incrementSlotBookedCount(
     serviceId: string,
@@ -82,40 +82,32 @@ export class ServiceRepository {
     slotTime: string,
     increment: number,
   ): Promise<IService | null> {
-    // First, fetch the service to check current capacity
-    const service = await Service.findById(serviceId).exec();
-    if (!service) return null;
-
-    const slot = service.availableSlots.find(
-      (s) => s.date === slotDate && s.time === slotTime,
-    );
-    if (!slot) return null;
-
-    // Check if incrementing would exceed capacity
-    if (slot.bookedCount + increment > slot.capacity) {
-      return null; // Capacity exceeded - return null to indicate failure
-    }
-
-    // Capacity is available, atomically increment
-    return Service.findOneAndUpdate(
+    // Use conditional update to prevent overbooking
+    const updated = await Service.findOneAndUpdate(
       {
         _id: serviceId,
         'availableSlots.date': slotDate,
-        'availableSlots.time': slotTime,
+        'availableSlots.startTime': slotTime,
+        'availableSlots.remainingCapacity': { $gte: increment },
       },
       {
-        $inc: { 'availableSlots.$[slot].bookedCount': increment },
+        $inc: {
+          'availableSlots.$[slot].remainingCapacity': -increment,
+          'availableSlots.$[slot].bookedCount': increment,
+        },
       },
       {
-        arrayFilters: [{ 'slot.date': slotDate, 'slot.time': slotTime }],
+        arrayFilters: [{ 'slot.date': slotDate, 'slot.startTime': slotTime }],
         new: true,
         runValidators: true,
       },
     ).exec();
+
+    return updated;
   }
 
   /**
-   * Atomically decrement bookedCount (used on cancellation).
+   * Atomically release capacity (used on cancellation or payment failure).
    */
   async decrementSlotBookedCount(
     serviceId: string,
@@ -124,12 +116,16 @@ export class ServiceRepository {
     decrement: number,
   ): Promise<void> {
     await Service.updateOne(
-      { _id: serviceId, 'availableSlots.date': slotDate, 'availableSlots.time': slotTime },
+      { _id: serviceId, 'availableSlots.date': slotDate, 'availableSlots.startTime': slotTime },
       {
-        $inc: { 'availableSlots.$[slot].bookedCount': -decrement },
+        $inc: {
+          'availableSlots.$[slot].remainingCapacity': decrement,
+          'availableSlots.$[slot].bookedCount': -decrement,
+        },
       },
       {
-        arrayFilters: [{ 'slot.date': slotDate, 'slot.time': slotTime }],
+        arrayFilters: [{ 'slot.date': slotDate, 'slot.startTime': slotTime }],
+        runValidators: true,
       },
     ).exec();
   }

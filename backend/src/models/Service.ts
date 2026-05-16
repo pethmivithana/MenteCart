@@ -12,9 +12,12 @@ export type ServiceCategory =
 
 export interface IAvailableSlot {
   date: string; // ISO date string: 'YYYY-MM-DD'
-  time: string; // e.g. '09:00', '14:30'
+  startTime: string; // e.g. '09:00'
+  endTime?: string; // optional end time '10:00'
   capacity: number;
-  bookedCount: number;
+  remainingCapacity: number;
+  // kept for backward compatibility
+  bookedCount?: number;
 }
 
 export interface IService extends Document {
@@ -37,12 +40,19 @@ export interface IService extends Document {
 const availableSlotSchema = new Schema<IAvailableSlot>(
   {
     date: { type: String, required: true },
-    time: { type: String, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String },
     capacity: { type: Number, required: true, min: 1 },
+    remainingCapacity: { type: Number, required: true, min: 0 },
     bookedCount: { type: Number, default: 0, min: 0 },
   },
   { _id: true },
 );
+
+// Virtual to keep older `time` serialization for backward compatibility
+availableSlotSchema.virtual('time').get(function (this: any) {
+  return this.startTime;
+});
 
 const serviceSchema = new Schema<IService>(
   {
@@ -98,5 +108,7 @@ serviceSchema.index({ title: 'text', description: 'text' });
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ price: 1 });
 serviceSchema.index({ isActive: 1 });
+// Index slots for quick availability lookup
+serviceSchema.index({ 'availableSlots.date': 1, 'availableSlots.startTime': 1 });
 
 export const Service = mongoose.model<IService>('Service', serviceSchema);

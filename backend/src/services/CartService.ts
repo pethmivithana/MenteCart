@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
+import { ICart } from '../models/Cart';
 import { cartRepository } from '../repositories/CartRepository';
 import { serviceRepository } from '../repositories/ServiceRepository';
-import { ICart } from '../models/Cart';
 import { BadRequestError, NotFoundError } from '../utils/ApiError';
 
 export interface AddCartItemDto {
@@ -47,13 +47,13 @@ export class CartService {
     if (!service) throw new NotFoundError('Service not found');
 
     const slot = service.availableSlots.find(
-      (s) => s.date === dto.slotDate && s.time === dto.slotTime,
+      (s: any) => s.date === dto.slotDate && (s.startTime === dto.slotTime || s.time === dto.slotTime),
     );
     if (!slot) {
       throw new BadRequestError('The selected slot does not exist for this service', 'SLOT_NOT_FOUND');
     }
 
-    const remaining = slot.capacity - slot.bookedCount;
+    const remaining = (slot.remainingCapacity !== undefined) ? slot.remainingCapacity : (slot.capacity - (slot.bookedCount || 0));
     if (dto.quantity > remaining) {
       throw new BadRequestError(
         `Only ${remaining} spot(s) available for this slot`,
