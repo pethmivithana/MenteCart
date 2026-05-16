@@ -181,5 +181,5 @@ See `FLUTTER_IMPLEMENTATION.md` for detailed architecture documentation.
 
 ## License
 
-flutter run --dart-define=API_BASE_URL=http://192.168.56.1:5000/api
+
 flutter run --dart-define=API_BASE_URL=http://192.168.1.89:5000/api
